@@ -1,0 +1,14 @@
+tc - 71
+
+https://friederloch.de/projekte/data-and-age-of-empires/
+
+numArchers
+
+
+
+object_ids
+
+
+table:
+ELO, won Y/N, time >2, time >4, time >8, first >2 Y/N, first >4 Y/N, first >8 Y/N
+

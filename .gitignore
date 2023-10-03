@@ -1,0 +1,10 @@
+
+
+/venv/
+
+/r/3/
+/r/2/
+/r/1/
+
+# this one gets saved in outer folder after mgz installation (delete it, but if you dont at least ignore it)
+/mgz.egg-info
