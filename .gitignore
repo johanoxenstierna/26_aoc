@@ -1,4 +1,6 @@
 
+.idea
+src/__pycache__/*
 
 /venv/
 
@@ -8,3 +10,6 @@
 
 # this one gets saved in outer folder after mgz installation (delete it, but if you dont at least ignore it)
 /mgz.egg-info
+
+
+/backups/
