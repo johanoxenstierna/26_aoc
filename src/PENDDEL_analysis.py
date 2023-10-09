@@ -15,18 +15,24 @@ ELO,  won Y/N, ini_times_avg_rat, ini_objs_tot, ini_targets, ini_group_size_avg,
 0         1          2                  3            4                5                6        7                   8             9                 10                11
 winner,  ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, profile_id
 
+	0     1          2                  3            4                5                6        7                   8             9                 10                11      12                13
+winner,  ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
+
+
 """
 
 # D = np.load('./data_proc/DD3_6000.npy')
-D = np.load('./data_proc/D3_6000.npy')
+D = np.load('./data_proc/D4.npy')
+D = D[np.where(D[:, 1] > 0)[0], :]
 
-'''Remove matches where diff in ELO is large'''
-rows_to_keep = []
-for i in range(0, len(D)):
-	diff_elo = abs(D[i, 1] - D[i, 6])
-	if diff_elo < 20:
-		rows_to_keep.append(i)
-D = D[rows_to_keep, :]
+asdf = 5
+# '''Remove matches where diff in ELO is large'''
+# rows_to_keep = []
+# for i in range(0, len(D)):
+# 	diff_elo = abs(D[i, 1] - D[i, 6])
+# 	if diff_elo < 20:
+# 		rows_to_keep.append(i)
+# D = D[rows_to_keep, :]
 
 '''Matches where the player who was faster also won'''
 num_true = 0

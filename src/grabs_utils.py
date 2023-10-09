@@ -1,6 +1,7 @@
 import copy
 import io
 import random
+random.seed()
 import zipfile
 import requests
 from selenium import webdriver
@@ -13,6 +14,9 @@ from uuid import uuid4
 import datetime
 import json
 import numpy as np
+from scipy import stats
+
+from src.analysis_utils import min_max_normalization
 
 
 def get_times(driver, trs):
@@ -51,7 +55,7 @@ def get_times(driver, trs):
 	return match_times
 
 
-def get_profile_ids(num, out_names_done):
+def get_profile_ids(num, out_names_done, COMPUTER_CUT):
 
 	out_profile_ids_done = [int(x.split('_')[0]) for x in out_names_done]
 
@@ -59,22 +63,45 @@ def get_profile_ids(num, out_names_done):
 		profiles = json.load(f)
 
 	profile_names = list(profiles.keys())
+	indices_cut = [int(len(profiles) * COMPUTER_CUT[0]), int(len(profiles) * COMPUTER_CUT[1])]
+	profile_names = profile_names[indices_cut[0]:indices_cut[1]]
 
-	# names = list(np.random.choice(np.asarray(profile_ids), size=[num,]))
-	# names = list(np.random.choice(np.asarray(profile_ids), size=[num,]))
-	random.shuffle(profile_names)
+	# random.shuffle(profile_names)
 
-	# num0 = int(num / 2)
-	# num1 = 200
+	'''ELO + probability, starting at 0 and ending at 3000'''
+	# probs = np.exp(np.linspace(0, 0.8, 30)) - 1
+
+	distribution = stats.norm(loc=0.6, scale=0.15)
+
+	# percentile point, the range for the inverse cumulative distribution function:
+	bounds_for_range = distribution.cdf([0, 1])
+
+	# Linspace for the inverse cdf:
+	pp = np.linspace(*bounds_for_range, num=3000)
+
+	probs = distribution.cdf(pp).astype(float)
 
 	selection = []
+	names_done_this_round = []
 
-	for name in profile_names:
-		if profiles[name]['profile_id'] not in out_profile_ids_done:
-			selection.append(profiles[name]['profile_id'])
+	while len(selection) < num:
 
-			if len(selection) >= num:
-				break
+		name = random.choice(profile_names)
+
+		if profiles[name]['profile_id'] not in out_profile_ids_done \
+			and name not in names_done_this_round:
+
+			elo = profiles[name]['ELO']
+
+			prob_sel = probs[elo]
+
+			if random.random() < prob_sel:
+
+				selection.append(profiles[name]['profile_id'])
+				names_done_this_round.append(name)
+
+				if len(selection) >= num:
+					break
 
 	# for name in profile_names:
 	# 	# if name in selection_names:

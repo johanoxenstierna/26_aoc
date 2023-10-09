@@ -13,3 +13,8 @@ src/__pycache__/*
 
 
 /backups/
+/data_proc/old/
+/data_proc/D4.npy
+/data_proc/D4_2.npy
+/data_proc/D52.npy
+/data_proc/D53.npy

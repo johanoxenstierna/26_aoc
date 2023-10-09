@@ -1,5 +1,7 @@
+import copy
 
 import numpy as np
+import random
 
 def min_max_normalization(X, y_range):
 
@@ -22,7 +24,7 @@ def convert_to_single_row(DD):
 	0       1          2                  3              4                5                6
 	ELO,  won Y/N, ini_times_avg_rat, ini_objs_tot, ini_targets, ini_group_size_avg,   profile_id
 
-	to
+	toa
 
 	0         1          2                  3            4                5                6        7                   8             9                 10                11
 	winner,  ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, profile_id
@@ -84,3 +86,104 @@ def convert_to_single_row(DD):
 	D = D[np.where(D[:, 1] > 0)[0], :] # needed to remove the extra rows
 
 	np.save('./data_proc/D3_6000.npy', D)
+
+
+def flatten_winner_loser(DD, TIME_CUT):
+
+	"""
+	   0     1          2                  3            4                5                6        7                   8             9                 10                11      12                13
+	PLACEHOLD,ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
+
+	TO
+	0          1          2                  3            4                5                6        7                   8             9                 10                11      12                13
+	won_lost, ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
+
+	    0     1          2                3               4                5                6              7            8             9              10               11              12                13          14              15
+	winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
+
+	ELO
+	p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_objs'] = 0  # THE LARGER THE MORE INI
+	p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_group_size_avg'] = 0  # need to remove later if 0
+
+	"""
+
+	'''
+	need to randomly select whether the loser or the winner appears first
+	'''
+
+	# rows = np.where((DD[:, 13] > (0)) & (DD[:, 13] < (TIME_CUT + 0.05)))[0]
+	rows = np.where(DD[:, 13] < (TIME_CUT + 0.05))[0]  # cut away unseen data
+	D = DD[rows, :]
+
+	# D_out = np.zeros(shape=(len(D) * 2, 14), dtype=np.float32)  # the input to the violin plot
+	D_out = np.zeros(shape=(len(D), 16), dtype=np.float32)  # the input to the violin plot
+	# win_rows = np.arange(0, len(D))
+	# loss_rows = np.arange(len(D), len(D) * 2)
+
+	# D_out[win_rows, 0] = 1
+
+	for row in range(0, len(D)):
+		if random.random() < 0.5:
+			D_out[row, 0] = 1  # winner. Everything else remains
+			D_out[row, 1:] = D[row, 1:]
+		else:
+			D_out[row, 0] = 0  # loser. Swaps position. OBS DANGEROUS AS IT MAKES SAME DATA REAPPEAR
+
+			D_out[row, 1] = D[row, 7]
+			D_out[row, 2] = D[row, 8]
+			D_out[row, 3] = D[row, 9]
+			D_out[row, 4] = D[row, 10]
+			D_out[row, 5] = D[row, 11]
+			D_out[row, 6] = D[row, 12]
+
+			D_out[row, 7] = D[row, 1]
+			D_out[row, 8] = D[row, 2]
+			D_out[row, 9] = D[row, 3]
+			D_out[row, 10] = D[row, 4]
+			D_out[row, 11] = D[row, 5]
+			D_out[row, 12] = D[row, 6]
+
+		D_out[row, 13] = D[row, 13]
+
+	return D_out
+
+
+def weighted_means(D, COLS):
+
+	if D[0, 13] > 0.15:
+		raise Exception("first row time_cut is not 0.1")
+	if D[-1, 13] < 0.95:
+		raise Exception("last row time_cut is not 1.0")
+	if len(D) % 10 != 0:
+		raise Exception("Matches not stored in 10ths")
+
+	# rows = np.where(D[:, 13] < (TIME_CUT + 0.05))[0]  # cut away unseen data
+	rows_max = np.where(D[:, 13] > 0.95)[0]
+
+	D_ = copy.deepcopy(D)
+
+	"""Assumes that matches are sorted according to TIME_CUTS"""
+
+	for row_max in rows_max:
+		rows_m = list(range(row_max - 9, row_max + 1))
+		m = D[rows_m, :]
+		m_ = copy.deepcopy(m)
+
+		if m[0, 13] > 0.15 or m[-1, 13] < 0.95 or len(m) != 10:
+			raise Exception("incorrect data")
+
+		'''Take all the data available until a TIME_CUT, i.e., 13'''
+		for row in range(1, 10):  # first one is ALREADY THE MEAN
+			w = m[0:row + 1, 13]
+			for COL in COLS:
+				x = m[0:row + 1, COL] # GETTIGN IS UBE, BUT NOT SETTING
+				m_[row, COL] = np.average(x, weights=w)
+
+		D_[rows_m, :] = m_
+
+		print(row_max)
+
+	return D_

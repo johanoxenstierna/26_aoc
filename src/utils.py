@@ -2,7 +2,7 @@ import numpy as np
 import json
 
 
-def get_profiles(profile_id_grabs, ps, profiles):
+def get_profiles(profile_id_save, ps, profiles):
 	"""
 	If a profile cannot be found then ELO cannot be obtained,
 	so match is useless in that case.
@@ -18,7 +18,7 @@ def get_profiles(profile_id_grabs, ps, profiles):
 
 		profile_ = profiles[p_name]
 
-		if profile_['profile_id'] == profile_id_grabs:
+		if profile_['profile_id'] == profile_id_save:
 			grabs_match_found = True
 
 		p['profile'] = profile_
@@ -108,16 +108,20 @@ def get_tc_coords(ps):
 			raise Exception("TC not found")
 
 
-def get_aggr_actions(ps):
-	"""Coordinates are required"""
+def set_aggr_actions(ps):
+	"""
+	Coordinates are required
+	NOTHING TIME BASED HERE except lower bound
+	"""
 
 	aggr_error = False
-	num_not_found_aggr = 0
+	num_not_found_aggr = 0 # 0, 1 or 2
 
 	for p_id, p in ps.items():
 
 		p['aggr_actions'] = []
 		p['has_aggr_actions'] = True
+		# p['num_non_aggr_actions'] = 0
 
 		'''get tc of opponent'''
 		p_ids = ps.keys()
@@ -136,7 +140,7 @@ def get_aggr_actions(ps):
 
 			# Position ALWAYS present in MOVE and ORDER. Need > 1 to avoid scout
 			# if a.type.name in ['ORDER'] and \
-			if a.type.name in ['MOVE', 'ORDER'] and \
+			if a.type.name in ['MOVE', 'ORDER', 'BUILD', 'WALL'] and \
 				len(a.payload['object_ids']) > 1 and \
 				a.timestamp.seconds > 60:  # last condition not very important
 
@@ -147,7 +151,7 @@ def get_aggr_actions(ps):
 				d_opp_tc = np.linalg.norm(pos_a - pos_tc_opp) + 0.00001
 				ratio_own_opp = d_own_tc / d_opp_tc
 
-				if ratio_own_opp > 0.5:
+				if ratio_own_opp > 1:  # d_own_tc is more than d_opp_tc
 
 					'''the first order on enemy half marks beginning of aggression'''
 					if flag_found_first == False and a.type.name == 'ORDER':
@@ -155,22 +159,26 @@ def get_aggr_actions(ps):
 
 					if flag_found_first == True:
 						aggr_actions.append(a)
+				# else:
+				# 	p['num_non_aggr_actions'] += 1  # ITS EIATHER THIS OR AGGR_ACTIONS +1
 
-		if len(aggr_actions) > 1:
+		if len(aggr_actions) > 1: # and p['num_non_aggr_actions'] > 1:
 			p['aggr_actions'] = aggr_actions
 		else:
 			p['has_aggr_actions'] = False
 			num_not_found_aggr += 1
 
-	if num_not_found_aggr == 2:
+	if num_not_found_aggr == 2:  # neither of the players were aggressive
 		aggr_error = True
 
 	return aggr_error
 
 
-def get_early_initiative(ps):
+def compute_initiative(ps, TIME_CUT_R):
 	"""
-	ddd
+	aggr_actions have NOT been filtered based on TIME_CUT at this point
+	THATS WHATS DONE HERE
+	OBS this is where ps is set
 	"""
 
 	flag_error_ini = False
@@ -192,187 +200,223 @@ def get_early_initiative(ps):
 				time_lastest = _time_last
 
 	tot_time_aggr = time_lastest - time_firstest
-	time_cutoff = time_firstest + int(tot_time_aggr / 3)
+	TIME_CUT_UPPER_S = time_firstest + int(TIME_CUT_R * tot_time_aggr)
+	TIME_CUT_LOWER_S = time_firstest + int((TIME_CUT_R - 0.1) * tot_time_aggr)
 
 	for p_id, p in ps.items():
 
 		'''Defaults for a player, i.e., no aggression at all
-		OBS. Check how many games are won with these. '''
-		p['ini_times_avg_rat'] = 1
-		p['ini_objs_tot'] = 0  # unique aggr obj
-		p['ini_targets'] = 0
+		OBS. Check how many games are won with these. 
+		Proportions are here wrt OWN. Against opp is done later
+		'''
+		p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
+		p['ini_objs'] = 0  # THE LARGER THE MORE INI
+		p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
+		p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
 		p['ini_group_size_avg'] = 0  # need to remove later if 0
 
 		if p['has_aggr_actions'] == False:
-			print("p[has_aggr_actions] == False")
+			# print("p[has_aggr_actions] == False")
 			continue
 
-		ini_actions = []
+		aggr_actions_t = []
 		for a in p['aggr_actions']:
-			if a.timestamp.seconds < time_cutoff:
-				ini_actions.append(a)
+			if (a.timestamp.seconds > TIME_CUT_LOWER_S) and (a.timestamp.seconds < TIME_CUT_UPPER_S):
+				aggr_actions_t.append(a)
+			if a.timestamp.seconds > TIME_CUT_UPPER_S:
+				break
 
-		ini_times = []
+		'''All actions (not just aggr)'''
+		all_num_actions_t = 0
+		all_unique_object_ids = []
+		all_unique_target_ids = []
+		for a in p['actions']:
+			if (a.timestamp.seconds > TIME_CUT_LOWER_S) and (a.timestamp.seconds < TIME_CUT_UPPER_S):
+				all_num_actions_t += 1
+				if 'object_ids' in a.payload:
+					for obj_id in a.payload['object_ids']:
+						if obj_id not in all_unique_object_ids:
+							all_unique_object_ids.append(obj_id)
+
+				if 'target_id' in a.payload:
+					if a.payload['target_id'] not in all_unique_target_ids:
+						all_unique_target_ids.append(a.payload['target_id'])
+
+			if a.timestamp.seconds > TIME_CUT_UPPER_S:
+				break
+
+		'''np.unique is done on them afterwards'''
+		ini_actions = len(aggr_actions_t)
 		ini_objs = []
 		ini_targets = []
 		ini_group_sizes = []
 
-		for a in ini_actions:
-			ini_times.append(a.timestamp.seconds)
+		for a in aggr_actions_t:
+			# ini_times.append(a.timestamp.seconds)
 			ini_objs.extend(a.payload['object_ids'])
 			if 'target_id' in a.payload:
 				ini_targets.append(a.payload['target_id'])
 			ini_group_sizes.append(len(a.payload['object_ids']))
 
-		if len(ini_times) > 0:
-			ini_times_avg = np.mean(ini_times) - time_firstest
-			ini_times_avg_rat = ini_times_avg / tot_time_aggr
-			p['ini_times_avg_rat'] = ini_times_avg_rat
+		'''here writings to p'''
+		if len(aggr_actions_t) > 0:
+			# ini_times_avg = np.mean(ini_times) - time_firstest
+			# ini_times_avg_rat = ini_times_avg / tot_time_aggr
+			p['ini_actions_prop'] = ini_actions / all_num_actions_t
+			assert(p['ini_actions_prop'] < 1.000001)
 
 		if len(ini_objs) > 0:
-			ini_objs_tot = np.unique(np.asarray(ini_objs))
-			p['ini_objs_tot'] = len(ini_objs_tot)
+			ini_unique_objs = np.unique(np.asarray(ini_objs))
+			p['ini_objs'] = len(ini_unique_objs)
+			p['ini_objs_prop'] = len(ini_unique_objs) / len(all_unique_object_ids)
+			assert (p['ini_objs_prop'] < 1.000001)
+
+			'''Now same thing needed to get all the objs that were not close to enemy'''
+			# p['ini_objs_prop'] = np.log(len(ini_objs_tot))
 		if len(ini_targets) > 0:
-			ini_targets = np.unique(np.asarray(ini_targets))
-			p['ini_targets'] = len(ini_targets)
+			ini_unique_targets = np.unique(np.asarray(ini_targets))
+			p['ini_targets_prop'] = len(ini_unique_targets) / len(all_unique_target_ids)
+			assert (p['ini_targets_prop'] < 1.000001)
 		if len(ini_group_sizes) > 0:
 			p['ini_group_size_avg'] = np.mean(ini_group_sizes)
 
+
+
 	# for p_id, p in ps.items():  #
-		'''if rat = 1 loop over all actions (not just early) and compute data for that.'''
-		if p['ini_times_avg_rat'] == 1:
-			a_times = []
-			for a in p['aggr_actions']:
-				# if a.timestamp.seconds < time_cutoff:
-				a_times.append(a.timestamp.seconds)
-			# a_times_avg = np.mean(a_times) - time_firstest
-			# p['ini_times_avg_rat'] = a_times_avg / tot_time_aggr
+	'''if rat = 1 loop over all actions (not just early) and compute data for that.
+	REMOVED. It is cheating to look forward here.  
+	'''
+	# if p['ini_times_avg_rat'] == 1:
+	# 	a_times = []
+	# 	for a in p['aggr_actions']:
+	# 		# if a.timestamp.seconds < time_cutoff:
+	# 		a_times.append(a.timestamp.seconds)
+	# 	# a_times_avg = np.mean(a_times) - time_firstest
+	# 	# p['ini_times_avg_rat'] = a_times_avg / tot_time_aggr
+	#
+	#
+	# 	ini_actions = []
+	# 	for a in p['aggr_actions']:
+	# 		ini_actions.append(a)
+	#
+	# 	ini_times = []
+	# 	ini_objs = []
+	# 	ini_targets = []
+	# 	ini_group_sizes = []
+	#
+	# 	for a in ini_actions:
+	# 		ini_times.append(a.timestamp.seconds)
+	# 		ini_objs.extend(a.payload['object_ids'])
+	# 		if 'target_id' in a.payload:
+	# 			ini_targets.append(a.payload['target_id'])
+	# 		ini_group_sizes.append(len(a.payload['object_ids']))
+	#
+	# 	if len(ini_times) > 0:
+	# 		ini_times_avg = np.mean(ini_times) - time_firstest
+	# 		ini_times_avg_rat = ini_times_avg / tot_time_aggr
+	# 		p['ini_times_avg_rat'] = ini_times_avg_rat
+	#
+	# 	if len(ini_objs) > 0:
+	# 		ini_objs_tot = np.unique(np.asarray(ini_objs))
+	# 		p['ini_objs_tot'] = len(ini_objs_tot)
+	# 	if len(ini_targets) > 0:
+	# 		ini_targets = np.unique(np.asarray(ini_targets))
+	# 		p['ini_targets'] = len(ini_targets)
+	# 	if len(ini_group_sizes) > 0:
+	# 		p['ini_group_size_avg'] = np.mean(ini_group_sizes)
+	#
+	# 	if p['ini_times_avg_rat'] > 0.99999:
+	# 		print("liuyliuyi")
+	# 		# raise Exception("Asdfasdfasdf")
 
 
-			ini_actions = []
-			for a in p['aggr_actions']:
-				ini_actions.append(a)
-
-			ini_times = []
-			ini_objs = []
-			ini_targets = []
-			ini_group_sizes = []
-
-			for a in ini_actions:
-				ini_times.append(a.timestamp.seconds)
-				ini_objs.extend(a.payload['object_ids'])
-				if 'target_id' in a.payload:
-					ini_targets.append(a.payload['target_id'])
-				ini_group_sizes.append(len(a.payload['object_ids']))
-
-			if len(ini_times) > 0:
-				ini_times_avg = np.mean(ini_times) - time_firstest
-				ini_times_avg_rat = ini_times_avg / tot_time_aggr
-				p['ini_times_avg_rat'] = ini_times_avg_rat
-
-			if len(ini_objs) > 0:
-				ini_objs_tot = np.unique(np.asarray(ini_objs))
-				p['ini_objs_tot'] = len(ini_objs_tot)
-			if len(ini_targets) > 0:
-				ini_targets = np.unique(np.asarray(ini_targets))
-				p['ini_targets'] = len(ini_targets)
-			if len(ini_group_sizes) > 0:
-				p['ini_group_size_avg'] = np.mean(ini_group_sizes)
-
-			if p['ini_times_avg_rat'] > 0.99999:
-				print("liuyliuyi")
-				# raise Exception("Asdfasdfasdf")
-
-
-def infer_and_push_to_D(ii, D, ps, profile_id_save):
+def infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME):
 
 	"""Select first occurences of aggs types
 
-	LEGACY
-	0       1          2         3        4        5          6            7                8                9          10           11
-	ELO,  won Y/N, time >2, time >4, time >8, first >2 Y/N, first >4 Y/N, first >8 Y/N, ini_times_avg, ini_objs_avg, ini_targets, profile_id
+		0     1          2                  3            4                5                6        7                   8             9                 10                11      12                13
+	winner,  ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
 
+		0     1          2                  3                  4                5                6        7                   8             9                    10               11      12                13
+	winner,  ELO0 , ini_actions_prop0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
 
-	ADD TIMESTAMP AS GAME_ID (so that games can be postprocessed)
-	0       1          2                  3              4                5                6
-	ELO,  won Y/N, ini_times_avg_rat, ini_objs_tot, ini_targets, ini_group_size_avg,   profile_id
+		0     1          2             3               4                5                6                 7            8             9              10               11              12                13          14              15
+	winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
 
+	p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_objs'] = 0  # THE LARGER THE MORE INI
+	p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
+	p['ini_group_size_avg'] = 0  # need to remove later if 0
 
 	"""
 
-	'''First get the ELO, won and times'''
+	'''check that D_row is valid'''
+	if D_row > 0:
+		if D[D_row - 1, 1] < 10 or D[D_row - 1, 7] < 10:
+			raise Exception("Elo missing prev row")
+		if D[D_row, 1] > 0.1 or D[D_row, 7] > 0.1:
+			raise Exception("Elo set on D_row when it shouldnt")
+
+	'''This sets 1 row'''
+	cols = []
 	for p_id, p in ps.items():
+
 		try:
-			D[ii, 0] = p['profile']['ELO']
+			_ = p['profile']['ELO']
 		except:
 			raise Exception("cant add ELO from profile")
 
-		D[ii, 1] = p['winner']
-		D[ii, 6] = profile_id_save
+		'''player specific cols'''
+		if p['winner'] > 0.5:  # winner columns
+			cols = [1, 2, 3, 4, 5, 6]
+		elif p['winner'] <= 0.5:  # loser columns
+			cols = [7, 8, 9, 10, 11, 12]
 
-		# for a in p['aggr_actions']:
-		#
-		# 	if len(a.payload['object_ids']) > 2 and D[ii, 2] == 0:
-		# 		D[ii, 2] = a.timestamp.seconds
-		#
-		# 	if len(a.payload['object_ids']) > 4 and D[ii, 3] == 0:
-		# 		D[ii, 3] = a.timestamp.seconds
-		#
-		# 	if len(a.payload['object_ids']) > 8 and D[ii, 4] == 0:
-		# 		D[ii, 4] = a.timestamp.seconds
+		D[D_row, cols[0]] = p['profile']['ELO']
+		D[D_row, cols[1]] = p['ini_actions_prop']
+		D[D_row, cols[2]] = p['ini_objs']
+		D[D_row, cols[3]] = p['ini_objs_prop']
+		D[D_row, cols[4]] = p['ini_targets_prop']
+		D[D_row, cols[5]] = p['ini_group_size_avg']
 
-		D[ii, 2] = p['ini_times_avg_rat']
-		D[ii, 3] = p['ini_objs_tot']
-		D[ii, 4] = p['ini_targets']
-		D[ii, 5] = p['ini_group_size_avg']
+		'''non player specific rows'''
+		D[D_row, 13] = TIME_CUT_R
+		D[D_row, 14] = PROF_ID_SAVE
+		D[D_row, 15] = MATCH_TIME
 
-		ii += 1
+	D_row += 1
 
-	'''
-	Get the one who was first
-	TODO: Add time diff limits
-	'''
-	# ii -= 2  # go back to first row
-	# diff_2 = abs(D[ii, 2] - D[ii + 1, 2])
-	# if diff_2 > 30:
-	# 	if D[ii, 2] < D[ii + 1, 2]:
-	# 		D[ii, 5] = 1
-	# 		D[ii + 1, 5] = 0
-	# 	else:
-	# 		D[ii, 5] = 0
-	# 		D[ii + 1, 5] = 1
-	# else:
-	# 	print("No aggressor found")
-	# 	D[ii, 5] = 9999
-	# 	D[ii + 1, 5] = 9999
+	# '''PEND DELDEPR First get the ELO, won and times'''
+	# for p_id, p in ps.items():
+	# 	try:
+	# 		D[ii, 0] = p['profile']['ELO']
+	# 	except:
+	# 		raise Exception("cant add ELO from profile")
 	#
-	# diff_4 = abs(D[ii, 3] - D[ii + 1, 3])
-	# if diff_4 > 30:
-	# 	if D[ii, 3] < D[ii + 1, 3] and diff_4 > 30:
-	# 		D[ii, 6] = 1
-	# 		D[ii + 1, 6] = 0
-	# 	else:
-	# 		D[ii, 6] = 0
-	# 		D[ii + 1, 6] = 1
-	# else:
-	# 	print("No aggressor found")
-	# 	D[ii, 6] = 9999
-	# 	D[ii + 1, 6] = 9999
+	# 	D[ii, 1] = p['winner']
+	# 	D[ii, 6] = profile_id_save
 	#
-	# diff_8 = abs(D[ii, 4] - D[ii + 1, 4])
-	# if diff_8 > 30:
-	# 	if D[ii, 4] < D[ii + 1, 4]:
-	# 		D[ii, 7] = 1
-	# 		D[ii + 1, 7] = 0
-	# 	else:
-	# 		D[ii, 7] = 0
-	# 		D[ii + 1, 7] = 1
-	# else:
-	# 	print("No aggressor found")
-	# 	D[ii, 7] = 9999
-	# 	D[ii + 1, 7] = 9999
+	# 	# for a in p['aggr_actions']:
+	# 	#
+	# 	# 	if len(a.payload['object_ids']) > 2 and D[ii, 2] == 0:
+	# 	# 		D[ii, 2] = a.timestamp.seconds
+	# 	#
+	# 	# 	if len(a.payload['object_ids']) > 4 and D[ii, 3] == 0:
+	# 	# 		D[ii, 3] = a.timestamp.seconds
+	# 	#
+	# 	# 	if len(a.payload['object_ids']) > 8 and D[ii, 4] == 0:
+	# 	# 		D[ii, 4] = a.timestamp.seconds
+	#
+	# 	D[ii, 2] = p['ini_times_avg_rat']
+	# 	D[ii, 3] = p['ini_objs_tot']
+	# 	D[ii, 4] = p['ini_targets']
+	# 	D[ii, 5] = p['ini_group_size_avg']
+	#
+	# 	ii += 1
 
-	return ii
+
+	return D_row
 
 
 

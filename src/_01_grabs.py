@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from src.grabs_utils import *
 
+
 # Collection period: September 16 -
 
 # profile_ids = [551102, 9701023, 2413974, 334309,
@@ -20,11 +21,17 @@ from src.grabs_utils import *
 
 # problem_prof 2645439 2070169
 
-PATH_OUT = './r/4/'
-# _, _, out_names_done = os.walk(PATH_OUT).__next__()
-# out_names_done = [x.split('.')[0] for x in out_names_done]
-out_names_done = []
-profile_ids = get_profile_ids(1000, out_names_done)
+# PATH_OUT = './r/4/'
+PATH_OUT = '/media/johan/KINGSTON/r/'
+PATHS_DONE = ['./r/3/', '/media/johan/KINGSTON/r/']
+COMPUTER_CUT = [0, 0.5]
+
+_, _, out_names_done0 = os.walk(PATHS_DONE[0]).__next__()
+_, _, out_names_done1 = os.walk(PATHS_DONE[1]).__next__()
+out_names_done = out_names_done0 + out_names_done1
+out_names_done = [x.split('.')[0] for x in out_names_done]
+# out_names_done = []
+profile_ids = get_profile_ids(3000, out_names_done, COMPUTER_CUT)
 
 # profile_id =  #9666666combi  # 6407068#12213178reimu #1832072stefan #271202vinch #2858362jordan #666976barles  #347269accm # viper196240  # hera199325
 
