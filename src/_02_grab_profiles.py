@@ -61,10 +61,11 @@ for i in range(0, 400):  # pages
 				print("could not convert to int profile id: " + str(profile_id))
 
 			if name not in profiles:
-				profiles[name] = {'profile_id': profile_id,
-				                        'name': name,
-				                        'ELO': ELO,
-				                        }
+				# profiles[name] = {'profile_id': profile_id,
+				#                         'name': name,
+				#                         'ELO': ELO,
+				#                         }
+				'''TODO: fix ELO_dates and ELO = average'''
 
 			print("profile_id: " + str(profile_id) + " name: " + str(name) + " ELO: " + str(ELO))
 		except:

@@ -1,6 +1,7 @@
 
 import os
 import io
+import shutil
 import zipfile
 import requests
 from selenium import webdriver
@@ -21,23 +22,26 @@ from src.grabs_utils import *
 
 # problem_prof 2645439 2070169
 
-# PATH_OUT = './r/4/'
-PATH_OUT = '/media/johan/KINGSTON/r/'
-PATHS_DONE = ['./r/3/', '/media/johan/KINGSTON/r/']
+PATH_OUT = './r/6_z/'
+UNZIP_FOLDER = './r/unzip_folder/'
+# PATH_OUT = '/media/johan/KINGSTON/r_z/'  # zip doesnt seem to work here
+PATHS_DONE = ['./r/3/', './r/4/', './r/5_z/', './r/6_z/']  # '/media/johan/KINGSTON/r/'
 COMPUTER_CUT = [0, 0.5]
 
+'''TODO: fix out_names_done FOR ZIPS'''
 _, _, out_names_done0 = os.walk(PATHS_DONE[0]).__next__()
 _, _, out_names_done1 = os.walk(PATHS_DONE[1]).__next__()
-out_names_done = out_names_done0 + out_names_done1
+_, _, out_names_done2 = os.walk(PATHS_DONE[2]).__next__()
+_, _, out_names_done3 = os.walk(PATHS_DONE[3]).__next__()
+out_names_done = out_names_done0 + out_names_done1 + out_names_done2 + out_names_done3
 out_names_done = [x.split('.')[0] for x in out_names_done]
 # out_names_done = []
 profile_ids = get_profile_ids(3000, out_names_done, COMPUTER_CUT)
 
-# profile_id =  #9666666combi  # 6407068#12213178reimu #1832072stefan #271202vinch #2858362jordan #666976barles  #347269accm # viper196240  # hera199325
-
 driver = webdriver.Firefox()
 time0 = time.time()
 num_games = 0
+num_games_STOP = 14000
 for iii, profile_id in enumerate(profile_ids):
 
     print("\n\n")
@@ -94,20 +98,48 @@ for iii, profile_id in enumerate(profile_ids):
                 replay_zip = zipfile.ZipFile(io.BytesIO(response.content))
                 replay = replay_zip.read(replay_zip.namelist()[0])
             except Exception as e:
-                print(e)
+                print(e)  # not a zip file
                 continue
 
-            with open(PATH_OUT + out_name + '.aoe2record', 'wb') as f:
+            # with open(PATH_OUT + out_name + '.aoe2record', 'wb') as f:
+            #     f.write(replay)
+
+            '''
+            This saves the replay file and then zips it using command line. 
+            Tried to dump the replay_zip above directly, but it did not work. 
+            '''
+            if os.path.isdir(UNZIP_FOLDER):
+                shutil.rmtree(UNZIP_FOLDER)
+
+            os.mkdir(UNZIP_FOLDER)
+
+            full_path_unzip = UNZIP_FOLDER + out_name + '.aoe2record'
+            full_path_zip = PATH_OUT + out_name + '.aoe2record.zip'
+            with open(full_path_unzip, 'wb') as f:
                 f.write(replay)
+
+            os.system('zip -r ' + full_path_zip + ' ' + full_path_unzip)
+            os.remove(full_path_unzip)
+
+            # '''same code as convert_to_zip.py'''
+            # binary_file_path = PATH_UNZIP + out_name + '.aoe2record'
+            # zip_file_path = PATH_OUT + out_name + '.aoe2record' + '.zip'
+            # with zipfile.ZipFile(zip_file_path, 'w') as f:
+            #     f.write(binary_file_path)
+            #
+            # os.remove(PATH_UNZIP + out_name + '.aoe2record')
 
             print("saved a game")
 
             num_games += 1
+
     except Exception as e:
         print("general failure")
         print(e)
         continue
 
+    if num_games > num_games_STOP:
+        break
 
 # input("Press Enter to kill")
 driver.close()

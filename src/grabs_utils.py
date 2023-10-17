@@ -57,6 +57,7 @@ def get_times(driver, trs):
 
 def get_profile_ids(num, out_names_done, COMPUTER_CUT):
 
+	print("getting profile_ids")
 	out_profile_ids_done = [int(x.split('_')[0]) for x in out_names_done]
 
 	with open('./profiles.json', 'r') as f:
@@ -102,6 +103,10 @@ def get_profile_ids(num, out_names_done, COMPUTER_CUT):
 
 				if len(selection) >= num:
 					break
+
+		if len(selection) % 100 == 0:
+			print(len(selection))
+
 
 	# for name in profile_names:
 	# 	# if name in selection_names:

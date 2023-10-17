@@ -1,20 +1,26 @@
 
 .idea
-src/__pycache__/*
-
+.idea/*
+src/__pycache__/
+__pycache__/
 /venv/
-
-/r/3/
-/r/2/
-/r/1/
 
 # this one gets saved in outer folder after mgz installation (delete it, but if you dont at least ignore it)
 /mgz.egg-info
 
-
 /backups/
+/data_proc/
 /data_proc/old/
 /data_proc/D4.npy
 /data_proc/D4_2.npy
-/data_proc/D52.npy
-/data_proc/D53.npy
+/data_proc/D30.npy
+/data_proc/D30_diffs.npy
+
+/r/3/
+/r/4/
+/r/4_z/
+/r/5/
+/r/5_z/
+/r/unzip_folder/
+/r/6_z/
+/r/3_z/

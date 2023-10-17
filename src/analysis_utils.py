@@ -167,23 +167,24 @@ def weighted_means(D, COLS):
 
 	"""Assumes that matches are sorted according to TIME_CUTS"""
 
-	for row_max in rows_max:
+	for i, row_max in enumerate(rows_max):
 		rows_m = list(range(row_max - 9, row_max + 1))
 		m = D[rows_m, :]
-		m_ = copy.deepcopy(m)
+		m_ = copy.deepcopy(m) # Not using zeros here cuz ELO should not be weighted
 
 		if m[0, 13] > 0.15 or m[-1, 13] < 0.95 or len(m) != 10:
 			raise Exception("incorrect data")
 
 		'''Take all the data available until a TIME_CUT, i.e., 13'''
 		for row in range(1, 10):  # first one is ALREADY THE MEAN
-			w = m[0:row + 1, 13]
+			w = m[0:row + 1, 13]  # weights (i.e. TIME_CUT)
 			for COL in COLS:
 				x = m[0:row + 1, COL] # GETTIGN IS UBE, BUT NOT SETTING
 				m_[row, COL] = np.average(x, weights=w)
 
 		D_[rows_m, :] = m_
 
-		print(row_max)
+		if i % 100 == 0:
+			print(row_max)
 
 	return D_

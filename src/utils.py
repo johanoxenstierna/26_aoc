@@ -139,8 +139,7 @@ def set_aggr_actions(ps):
 		for a in p['actions']:
 
 			# Position ALWAYS present in MOVE and ORDER. Need > 1 to avoid scout
-			# if a.type.name in ['ORDER'] and \
-			if a.type.name in ['MOVE', 'ORDER', 'BUILD', 'WALL'] and \
+			if a.type.name in ['MOVE', 'ORDER', 'BUILD', 'WALL', 'PATROL', 'DE_ATTACK_MOVE'] and \
 				len(a.payload['object_ids']) > 1 and \
 				a.timestamp.seconds > 60:  # last condition not very important
 
@@ -238,7 +237,7 @@ def compute_initiative(ps, TIME_CUT_R):
 						if obj_id not in all_unique_object_ids:
 							all_unique_object_ids.append(obj_id)
 
-				if 'target_id' in a.payload:
+				if 'target_id' in a.payload and a.type.name in ['ORDER', 'SPECIAL']:
 					if a.payload['target_id'] not in all_unique_target_ids:
 						all_unique_target_ids.append(a.payload['target_id'])
 
@@ -254,7 +253,7 @@ def compute_initiative(ps, TIME_CUT_R):
 		for a in aggr_actions_t:
 			# ini_times.append(a.timestamp.seconds)
 			ini_objs.extend(a.payload['object_ids'])
-			if 'target_id' in a.payload:
+			if 'target_id' in a.payload and a.type.name in ['ORDER', 'SPECIAL']:
 				ini_targets.append(a.payload['target_id'])
 			ini_group_sizes.append(len(a.payload['object_ids']))
 
