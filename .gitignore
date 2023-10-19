@@ -1,12 +1,15 @@
 
 .idea
 .idea/*
+.idea/vcs.xml
+.idea.26_aoc.iml
 src/__pycache__/
 __pycache__/
 /venv/
 
 # this one gets saved in outer folder after mgz installation (delete it, but if you dont at least ignore it)
 /mgz.egg-info
+/dist/
 
 /backups/
 /data_proc/
@@ -24,3 +27,4 @@ __pycache__/
 /r/unzip_folder/
 /r/6_z/
 /r/3_z/
+
