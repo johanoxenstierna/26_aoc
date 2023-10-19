@@ -16,16 +16,14 @@ p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
 p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
 p['ini_group_size_avg'] = 0  # need to remove later if 0
 time_cut
-
-
 """
 
 import numpy as np
 
 from src.analysis_utils import *
 
-PATH_IN = './data_proc/D20.npy'
-PATH_OUT = './data_proc/D20_diffs.npy'
+PATH_IN = './data_proc/D50.npy'
+PATH_OUT = './data_proc/D50_diffs.npy'
 
 D = np.load(PATH_IN)
 D = D[np.where((D[:, 1] > 0) & (D[:, 7] > 0))[0], :]  # remove bad rows

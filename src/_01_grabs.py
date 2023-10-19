@@ -2,7 +2,7 @@
 import os
 import io
 import shutil
-import zipfile
+# import zipfile
 import requests
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
@@ -14,29 +14,23 @@ from uuid import uuid4
 
 from src.grabs_utils import *
 
-
-# Collection period: September 16 -
-
-# profile_ids = [551102, 9701023, 2413974, 334309,
-#                2007713, 10818645, 2071926, 586490, 403294, 11665616]
-
-# problem_prof 2645439 2070169
-
-PATH_OUT = './r/6_z/'
+'''ALWAYS CHECK THESE BEFORE RUNNING'''
+# PATH_OUT = './r/6_z/'
+PATH_OUT = '/media/johan/0E45-EEA5/r_z/'  # zip doesnt seem to work here
 UNZIP_FOLDER = './r/unzip_folder/'
-# PATH_OUT = '/media/johan/KINGSTON/r_z/'  # zip doesnt seem to work here
+# USB_bool = True  # needed bcs zip files FOR WHATEVER F* REASON, cant be saved directly to usb SEEMS TO WORK NOW
 PATHS_DONE = ['./r/3/', './r/4/', './r/5_z/', './r/6_z/']  # '/media/johan/KINGSTON/r/'
-COMPUTER_CUT = [0, 0.5]
+COMPUTER_CUT = [0, 0.5]  # this splits the profiles between computers
 
-'''TODO: fix out_names_done FOR ZIPS'''
+'''This is to avoid downloading the same records several times'''
 _, _, out_names_done0 = os.walk(PATHS_DONE[0]).__next__()
 _, _, out_names_done1 = os.walk(PATHS_DONE[1]).__next__()
 _, _, out_names_done2 = os.walk(PATHS_DONE[2]).__next__()
 _, _, out_names_done3 = os.walk(PATHS_DONE[3]).__next__()
 out_names_done = out_names_done0 + out_names_done1 + out_names_done2 + out_names_done3
 out_names_done = [x.split('.')[0] for x in out_names_done]
-# out_names_done = []
-profile_ids = get_profile_ids(3000, out_names_done, COMPUTER_CUT)
+
+profile_ids = get_profile_ids(200, out_names_done, COMPUTER_CUT)
 
 driver = webdriver.Firefox()
 time0 = time.time()
@@ -101,9 +95,6 @@ for iii, profile_id in enumerate(profile_ids):
                 print(e)  # not a zip file
                 continue
 
-            # with open(PATH_OUT + out_name + '.aoe2record', 'wb') as f:
-            #     f.write(replay)
-
             '''
             This saves the replay file and then zips it using command line. 
             Tried to dump the replay_zip above directly, but it did not work. 
@@ -120,6 +111,9 @@ for iii, profile_id in enumerate(profile_ids):
 
             os.system('zip -r ' + full_path_zip + ' ' + full_path_unzip)
             os.remove(full_path_unzip)
+
+            # if USB_bool == True:
+            #     os.system('mv ' + full_path_zip + ' ' + )
 
             # '''same code as convert_to_zip.py'''
             # binary_file_path = PATH_UNZIP + out_name + '.aoe2record'
