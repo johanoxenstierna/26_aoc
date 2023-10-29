@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn import tree
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import cross_validate
@@ -38,7 +39,7 @@ p['ini_group_size_avg'] = 0  # need to remove later if 0
 
 """
 
-D = np.load('./data_proc/D60_diffs_comb.npy')
+D = np.load('./data_proc/D40_diffs.npy')
 # D = D[np.where(D[:, 1] > 0)[0], :]
 # np.random.shuffle(D[:, 0])
 
@@ -47,7 +48,7 @@ rows_to_keep = []
 for i in range(0, len(D)):
 	# diff_elo = abs(D[i, 1] - D[i, 7])
 	diff_elo = abs(D[i, 1])
-	if diff_elo < 0.06:
+	if diff_elo < 0.09:
 		rows_to_keep.append(i)
 
 print("Rows before: " + str(len(D)) + "  Rows aft: " + str(len(rows_to_keep)))
@@ -81,8 +82,11 @@ for i in range(len(time_cut_ratios)):
 		'ini_targets_prop_diff': pd.Series(D_t[:, 5], dtype='float'),
 		'ini_group_size_avg_diff': pd.Series(D_t[:, 6], dtype='float'),
 		# 'time_cut': pd.Series(D_t[:, 7])  # completely useless for this, as it should be
-	}
-	)
+	})
+
+	fn = X.columns.values
+	cn = ['won', 'lost']
+
 
 	# X = pd.DataFrame({
 	# 	# 'elo0': pd.Series(D_flat[:, 1], dtype='int'),  # TODO ELO DIFFERENCE
@@ -99,29 +103,38 @@ for i in range(len(time_cut_ratios)):
 	# 	}
 	# )
 
-	m = RandomForestClassifier(n_estimators=100, max_depth=10)
+	m = RandomForestClassifier(n_estimators=10, max_depth=3)
 
 	'''No cv'''
-	# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=2, shuffle=True)
-	# m.fit(X_train, y_train.values.ravel())
-	# y_pred = m.predict(X_test)
-	# accuracy = accuracy_score(y_test, y_pred)
-	# print("TIME_CUT: " + str(TIME_CUT) + " Mean accuracy: " + str(accuracy))
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=2, shuffle=True)
+	m.fit(X_train, y_train.values.ravel())
+	y_pred = m.predict(X_test)
+	accuracy = accuracy_score(y_test, y_pred)
+	print("TIME_CUT: " + str(TIME_CUT) + " Mean accuracy: " + str(accuracy))
+
+	'''Visualize'''
+
+	fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(4, 4), dpi=800)
+	aa = tree.plot_tree(m.estimators_[0], feature_names=fn, class_names=cn, filled=True)
+
+	fig.savefig('rf_individualtree.png')
+
+	aa = 54
 
 	'''cv'''
-	cv_results = cross_validate(m, X, y.values.ravel(), cv=10, verbose=1)
-	print("TIME_CUT: " + str(TIME_CUT) + " Mean accuracy: " + str(np.mean(cv_results['test_score'])))
+# cv_results = cross_validate(m, X, y.values.ravel(), cv=10, verbose=1)
+# print("TIME_CUT: " + str(TIME_CUT) + " Mean accuracy: " + str(np.mean(cv_results['test_score'])))
 
-	# # '''Feature importance'''
-	# importances = m.feature_importances_
-	# std = np.std([tree.feature_importances_ for tree in m.estimators_], axis=0)
-	# feature_names = list(X.columns)
-	# forest_importances = pd.Series(importances, index=feature_names)
-	# fig, ax = plt.subplots()
-	# forest_importances.plot.bar(yerr=std, ax=ax)
-	# ax.set_title("Feature importances using MDI")
-	# ax.set_ylabel("Mean decrease in impurity")
-	# fig.tight_layout()
-	# plt.show()
-	# break
+# # '''Feature importance'''
+# importances = m.feature_importances_
+# std = np.std([tree.feature_importances_ for tree in m.estimators_], axis=0)
+# feature_names = list(X.columns)
+# forest_importances = pd.Series(importances, index=feature_names)
+# fig, ax = plt.subplots()
+# forest_importances.plot.bar(yerr=std, ax=ax)
+# ax.set_title("Feature importances using MDI")
+# ax.set_ylabel("Mean decrease in impurity")
+# fig.tight_layout()
+# plt.show()
+# break
 

@@ -2,8 +2,8 @@
 import os
 import json
 
-PATH = './r/5_z/'
-with open("./r/files_to_be_removed.json", 'r') as f:
+PATH = './r/6_z/'
+with open("./r/files_to_be_removed_6.json", 'r') as f:
     files_to_be_removed = json.load(f)
 
 _, _, all_file_names = os.walk(PATH).__next__()
@@ -22,7 +22,7 @@ for file_name in files_to_be_removed:
 
 if removed_files > 0:
     files_to_be_removed = []
-    with open("./r/files_to_be_removed.json", 'w') as f:
+    with open("./r/files_to_be_removed_PLACE.json", 'w') as f:
         json.dump(files_to_be_removed, f, indent=2)
 
 print("removed num files: " + str(removed_files))

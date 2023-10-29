@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import json
 
@@ -186,7 +188,16 @@ def compute_initiative(ps, TIME_CUT_R):
 	time_firstest = 9999999
 	time_lastest = 0
 
+	t_end = 1  # to avoid /0
+
 	for p_id, p in ps.items():
+
+		try:  # SHOULD BE MOVED TO EARLIER FUNCTION
+			t_end_ = p['actions'][-1].timestamp.seconds
+			if t_end_ > t_end:
+				t_end = copy.deepcopy(t_end_)
+		except:
+			print("timestamp could not be found for one of the last actions")
 
 		if p['has_aggr_actions'] == True:
 			_time_first = p['aggr_actions'][0].timestamp.seconds
@@ -199,6 +210,7 @@ def compute_initiative(ps, TIME_CUT_R):
 				time_lastest = _time_last
 
 	tot_time_aggr = time_lastest - time_firstest
+	T0_RATIO = time_firstest / t_end
 	TIME_CUT_UPPER_S = time_firstest + int(TIME_CUT_R * tot_time_aggr)
 	TIME_CUT_LOWER_S = time_firstest + int((TIME_CUT_R - 0.1) * tot_time_aggr)
 
@@ -208,6 +220,7 @@ def compute_initiative(ps, TIME_CUT_R):
 		OBS. Check how many games are won with these. 
 		Proportions are here wrt OWN. Against opp is done later
 		'''
+		# p['ini_t0_ratio'] = T0_RATIO  returned instead!
 		p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
 		p['ini_objs'] = 0  # THE LARGER THE MORE INI
 		p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
@@ -279,74 +292,78 @@ def compute_initiative(ps, TIME_CUT_R):
 		if len(ini_group_sizes) > 0:
 			p['ini_group_size_avg'] = np.mean(ini_group_sizes)
 
-
+	return T0_RATIO, t_end
 
 	# for p_id, p in ps.items():  #
-	'''if rat = 1 loop over all actions (not just early) and compute data for that.
-	REMOVED. It is cheating to look forward here.  
-	'''
-	# if p['ini_times_avg_rat'] == 1:
-	# 	a_times = []
-	# 	for a in p['aggr_actions']:
-	# 		# if a.timestamp.seconds < time_cutoff:
-	# 		a_times.append(a.timestamp.seconds)
-	# 	# a_times_avg = np.mean(a_times) - time_firstest
-	# 	# p['ini_times_avg_rat'] = a_times_avg / tot_time_aggr
-	#
-	#
-	# 	ini_actions = []
-	# 	for a in p['aggr_actions']:
-	# 		ini_actions.append(a)
-	#
-	# 	ini_times = []
-	# 	ini_objs = []
-	# 	ini_targets = []
-	# 	ini_group_sizes = []
-	#
-	# 	for a in ini_actions:
-	# 		ini_times.append(a.timestamp.seconds)
-	# 		ini_objs.extend(a.payload['object_ids'])
-	# 		if 'target_id' in a.payload:
-	# 			ini_targets.append(a.payload['target_id'])
-	# 		ini_group_sizes.append(len(a.payload['object_ids']))
-	#
-	# 	if len(ini_times) > 0:
-	# 		ini_times_avg = np.mean(ini_times) - time_firstest
-	# 		ini_times_avg_rat = ini_times_avg / tot_time_aggr
-	# 		p['ini_times_avg_rat'] = ini_times_avg_rat
-	#
-	# 	if len(ini_objs) > 0:
-	# 		ini_objs_tot = np.unique(np.asarray(ini_objs))
-	# 		p['ini_objs_tot'] = len(ini_objs_tot)
-	# 	if len(ini_targets) > 0:
-	# 		ini_targets = np.unique(np.asarray(ini_targets))
-	# 		p['ini_targets'] = len(ini_targets)
-	# 	if len(ini_group_sizes) > 0:
-	# 		p['ini_group_size_avg'] = np.mean(ini_group_sizes)
-	#
-	# 	if p['ini_times_avg_rat'] > 0.99999:
-	# 		print("liuyliuyi")
-	# 		# raise Exception("Asdfasdfasdf")
+	# '''if rat = 1 loop over all actions (not just early) and compute data for that.
+	# REMOVED. It is cheating to look forward here.
+	# '''
+	# # if p['ini_times_avg_rat'] == 1:
+	# # 	a_times = []
+	# # 	for a in p['aggr_actions']:
+	# # 		# if a.timestamp.seconds < time_cutoff:
+	# # 		a_times.append(a.timestamp.seconds)
+	# # 	# a_times_avg = np.mean(a_times) - time_firstest
+	# # 	# p['ini_times_avg_rat'] = a_times_avg / tot_time_aggr
+	# #
+	# #
+	# # 	ini_actions = []
+	# # 	for a in p['aggr_actions']:
+	# # 		ini_actions.append(a)
+	# #
+	# # 	ini_times = []
+	# # 	ini_objs = []
+	# # 	ini_targets = []
+	# # 	ini_group_sizes = []
+	# #
+	# # 	for a in ini_actions:
+	# # 		ini_times.append(a.timestamp.seconds)
+	# # 		ini_objs.extend(a.payload['object_ids'])
+	# # 		if 'target_id' in a.payload:
+	# # 			ini_targets.append(a.payload['target_id'])
+	# # 		ini_group_sizes.append(len(a.payload['object_ids']))
+	# #
+	# # 	if len(ini_times) > 0:
+	# # 		ini_times_avg = np.mean(ini_times) - time_firstest
+	# # 		ini_times_avg_rat = ini_times_avg / tot_time_aggr
+	# # 		p['ini_times_avg_rat'] = ini_times_avg_rat
+	# #
+	# # 	if len(ini_objs) > 0:
+	# # 		ini_objs_tot = np.unique(np.asarray(ini_objs))
+	# # 		p['ini_objs_tot'] = len(ini_objs_tot)
+	# # 	if len(ini_targets) > 0:
+	# # 		ini_targets = np.unique(np.asarray(ini_targets))
+	# # 		p['ini_targets'] = len(ini_targets)
+	# # 	if len(ini_group_sizes) > 0:
+	# # 		p['ini_group_size_avg'] = np.mean(ini_group_sizes)
+	# #
+	# # 	if p['ini_times_avg_rat'] > 0.99999:
+	# # 		print("liuyliuyi")
+	# # 		# raise Exception("Asdfasdfasdf")
 
 
-def infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME):
+def infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME, t0_ratio, t_end):
 
 	"""Select first occurences of aggs types
 
-		0     1          2                  3            4                5                6        7                   8             9                 10                11      12                13
-	winner,  ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-		0     1          2                  3                  4                5                6        7                   8             9                    10               11      12                13
-	winner,  ELO0 , ini_actions_prop0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-		0     1          2             3               4                5                6                 7            8             9              10               11              12                13          14              15
-	winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-	p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_objs'] = 0  # THE LARGER THE MORE INI
-	p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_group_size_avg'] = 0  # need to remove later if 0
+	D_out[:, 0] = won_lost
+	D_out[:, 1] = ELO0
+	D_out[:, 2] = ini_actions_prop0
+	D_out[:, 3] = ini_objs0
+	D_out[:, 4] = ini_objs_prop0
+	D_out[:, 5] = ini_targets_prop0
+	D_out[:, 6] = ini_group_size_avg0
+	D_out[:, 7] = ELO1
+	D_out[:, 8] = ini_actions_prop1
+	D_out[:, 9] = ini_objs1
+	D_out[:, 10] = ini_objs_prop1
+	D_out[:, 11] = ini_targets_prop1
+	D_out[:, 12] = ini_group_size_avg1
+	D_out[:, 13] = time_cut
+	D_out[:, 14] = profile_id_save
+	D_out[:, 15] = match_time
+	D_out[:, 16] = t0_ratio
+	D_out[:, 17] = t_end
 
 	"""
 
@@ -379,10 +396,14 @@ def infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME):
 		D[D_row, cols[4]] = p['ini_targets_prop']
 		D[D_row, cols[5]] = p['ini_group_size_avg']
 
-		'''non player specific rows'''
-		D[D_row, 13] = TIME_CUT_R
-		D[D_row, 14] = PROF_ID_SAVE
-		D[D_row, 15] = MATCH_TIME
+	'''non player specific rows'''
+	D[D_row, 13] = TIME_CUT_R
+	D[D_row, 14] = PROF_ID_SAVE
+	D[D_row, 15] = MATCH_TIME
+	D[D_row, 16] = t0_ratio
+	D[D_row, 17] = t_end
+
+		# D[D_row, 16] = p['ini_t0_ratio']  # MOVED    SAME FOR BOTH CURRENTLY
 
 	D_row += 1
 

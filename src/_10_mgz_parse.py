@@ -16,16 +16,17 @@ from src.utils import *
 
 # PATH = './mgz_aoc_clone/tests/recs_first/'
 # PATH_IN = '/media/johan/KINGSTON/r/'
-# PATH_IN_ZIP = './r/6_z/'
-PATH_IN_ZIP = './r_test/2_z/'
-UNZIP_FOLDER = './r/unzip_folder/'
-PATH_OUT = 'data_proc/D.npy'
+R = 6
+PATH_IN_ZIP = './r/{}_z/'.format(str(R))
+PATH_UNZIP_FOLDER = './r/unzip_folder_{}/'.format(str(R))
+PATH_OUT = './data_proc/D{}0.npy'.format(str(R))
+PATH_FILES_TO_BE_REMOVED = './r/files_to_be_removed_{}.json'.format(str(R))
 
 _, _, file_names_zip = os.walk(PATH_IN_ZIP).__next__()  # THESE ARE ARCHIVES. NOT SORTED!!!!
 file_names_zip.sort()  # good to make sure reruns are same
 
 LEN_DATA = len(file_names_zip)
-D = np.zeros(shape=(LEN_DATA * 20, 16), dtype=np.float32)  # THIS IS TWICE AS BIG AS SHOULD BE
+D = np.zeros(shape=(LEN_DATA * 20, 18), dtype=np.float32)  # THIS IS TWICE AS BIG AS SHOULD BE
 cur_row = 0
 time0 = time.time()  # 4000 s to do 6000 files
 time_cut_ratios = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]  # OBS MUST START ON 0.1
@@ -36,22 +37,26 @@ with open('./profiles.json', 'r') as f:
 tot_time_parsing = 0
 tot_time_infering = 0
 
+print("R: " + str(R))
+
 files_to_be_removed = []
 D_row = 0
 iii = 0  # attempts at saving games
 ii = 0  # all the files
+
 for ii in range(0, len(file_names_zip)):
 
     file_name_zip = file_names_zip[ii]
     print("ii: " + str(ii) + "  " + str(file_name_zip))
 
     '''The zip record is unzipped and placed in the UNZIP folder, which is rebuilt with a single file each iteration'''
-    if os.path.isdir(UNZIP_FOLDER):
-        shutil.rmtree(UNZIP_FOLDER)
-        os.mkdir(UNZIP_FOLDER)
+    if os.path.isdir(PATH_UNZIP_FOLDER):
+        shutil.rmtree(PATH_UNZIP_FOLDER)
+
+    os.mkdir(PATH_UNZIP_FOLDER)
 
     file_name_unzip = file_name_zip[:-4]
-    os.system('unzip -qq -j ' + PATH_IN_ZIP + file_name_zip + ' -d ' + UNZIP_FOLDER + file_name_unzip)
+    os.system('unzip -qq -j ' + PATH_IN_ZIP + file_name_zip + ' -d ' + PATH_UNZIP_FOLDER + file_name_unzip)
 
     '''THE PARSING AND INFERRING OF THE RECORD'''
     # try:
@@ -78,7 +83,7 @@ for ii in range(0, len(file_names_zip)):
 
     try:
         t0_parsing = time.time()
-        with open(UNZIP_FOLDER + file_name_unzip + '/' + file_name_unzip, 'rb') as f:
+        with open(PATH_UNZIP_FOLDER + file_name_unzip + '/' + file_name_unzip, 'rb') as f:
             m, ps = parse_match(f)
     except Exception as e:
         print("Parsing error")
@@ -126,8 +131,8 @@ for ii in range(0, len(file_names_zip)):
 
     t0_infering = time.time()
     for i, TIME_CUT_R in enumerate(time_cut_ratios):
-        compute_initiative(ps, TIME_CUT_R)  # this is a row in D
-        D_row = infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME)
+        t0_ratio, t_end = compute_initiative(ps, TIME_CUT_R)  # this is a row in D
+        D_row = infer_and_push_to_D(D_row, D, ps, TIME_CUT_R, PROF_ID_SAVE, MATCH_TIME, t0_ratio, t_end)
     t1_infering = time.time()
     tot_time_infering += (t1_infering - t0_infering)
 
@@ -145,7 +150,7 @@ for ii in range(0, len(file_names_zip)):
 
         np.save(PATH_OUT, D)
 
-        with open("./files_to_be_removed.json", 'w') as f:
+        with open(PATH_FILES_TO_BE_REMOVED, 'w') as f:
             json.dump(files_to_be_removed, f, indent=2)
         print("==================DONE SAVING\n")
 
@@ -155,7 +160,7 @@ for ii in range(0, len(file_names_zip)):
     #     files_to_be_removed.append(file_name_zip)  # this is archive name
 
 
-with open("./files_to_be_removed.json", 'w') as f:
+with open(PATH_FILES_TO_BE_REMOVED, 'w') as f:
     json.dump(files_to_be_removed, f, indent=2)
 
 time1 = time.time() - time0
@@ -163,9 +168,9 @@ np.save(PATH_OUT, D)
 print("took " + str(time1) + " to do " + str(ii) + " games")
 '''TODO: remove missing rows + print how many missing'''
 
-if os.path.isdir(UNZIP_FOLDER):
-    shutil.rmtree(UNZIP_FOLDER)
-    os.mkdir(UNZIP_FOLDER)
+if os.path.isdir(PATH_UNZIP_FOLDER):
+    shutil.rmtree(PATH_UNZIP_FOLDER)
+    os.mkdir(PATH_UNZIP_FOLDER)
 
 # D = D[np.where(D[:, 0] > 0)[0], :]
 

@@ -101,13 +101,24 @@ def flatten_winner_loser(DD, TIME_CUT):
 	    0     1          2                3               4                5                6              7            8             9              10               11              12                13          14              15
 	winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
 
-	ELO
-	p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_objs'] = 0  # THE LARGER THE MORE INI
-	p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
-	p['ini_group_size_avg'] = 0  # need to remove later if 0
-
+	D_out[:, 0] = won_lost
+	D_out[:, 1] = ELO0
+	D_out[:, 2] = ini_actions_prop0
+	D_out[:, 3] = ini_objs0
+	D_out[:, 4] = ini_objs_prop0
+	D_out[:, 5] = ini_targets_prop0
+	D_out[:, 6] = ini_group_size_avg0
+	D_out[:, 7] = ELO1
+	D_out[:, 8] = ini_actions_prop1
+	D_out[:, 9] = ini_objs1
+	D_out[:, 10] = ini_objs_prop1
+	D_out[:, 11] = ini_targets_prop1
+	D_out[:, 12] = ini_group_size_avg1
+	D_out[:, 13] = time_cut
+	D_out[:, 14] = profile_id_save
+	D_out[:, 15] = match_time
+	D_out[:, 16] = t0_ratio
+	D_out[:, 17] = t_end
 	"""
 
 	'''
@@ -119,7 +130,7 @@ def flatten_winner_loser(DD, TIME_CUT):
 	D = DD[rows, :]
 
 	# D_out = np.zeros(shape=(len(D) * 2, 14), dtype=np.float32)  # the input to the violin plot
-	D_out = np.zeros(shape=(len(D), 16), dtype=np.float32)  # the input to the violin plot
+	D_out = np.zeros(shape=D.shape, dtype=np.float32)  # the input to the violin plot
 	# win_rows = np.arange(0, len(D))
 	# loss_rows = np.arange(len(D), len(D) * 2)
 
@@ -147,6 +158,10 @@ def flatten_winner_loser(DD, TIME_CUT):
 			D_out[row, 12] = D[row, 6]
 
 		D_out[row, 13] = D[row, 13]
+		D_out[row, 14] = D[row, 14]
+		D_out[row, 15] = D[row, 15]
+		D_out[row, 16] = D[row, 16]
+		D_out[row, 17] = D[row, 17]
 
 	return D_out
 

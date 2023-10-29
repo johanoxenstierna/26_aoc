@@ -3,8 +3,8 @@ import os
 import io
 import zipfile
 
-PATH_IN = './r/2/'
-PATH_OUT = './r/2_z/'
+PATH_IN = './r/4/'
+PATH_OUT = './r/4_z/'
 
 _, _, file_names = os.walk(PATH_IN).__next__()
 

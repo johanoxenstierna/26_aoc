@@ -8,25 +8,11 @@ import pandas as pd
 
 from src.analysis_utils import *
 
-D = np.load('./data_proc/D20_diffs.npy')  # OBS DONT LOOK AT LEN HERE
+D = np.load('./data_proc/D_diffs.npy')  # OBS DONT LOOK AT LEN HERE
 # D = D[np.where((D[:, 1] > 0) & (D[:, 7] > 0))[0], :]
 
-TIME_CUT = 0.5
-D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
 
 """
-    0     1          2                3               4                5                6              7            8             9              10               11              12                13          14              15
-winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-ELO
-p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_objs'] = 0  # THE LARGER THE MORE INI
-p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_group_size_avg'] = 0  # need to remove later if 0
-
-OBS can only do 1 column, BUT DOES NOT MATTER CUZ LOOK AT V 
-
 
 D_out[:, 0] = D_flat[:, 0]
 D_out[:, 1] = ELO_diff
@@ -35,22 +21,42 @@ D_out[:, 3] = ini_objs_diff
 D_out[:, 4] = ini_objs_prop_diff
 D_out[:, 5] = ini_targets_prop_diff
 D_out[:, 6] = ini_group_size_avg_diff
-D_out[:, 7] = D_flat[:, 13]
+D_out[:, 7] = time_cut (t!)
+D_out[:, 8] = t0_ratio
+D_out[:, 9] = t_end
 
 
 """
 
-COL = 2  # THIS IS AN INDEX!!!
+# TIME_CUT = 0.2  # ONLY FOR ELO
+# D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
+
+
+# TITLE = 'Initiative through time'
+# XLABEL = 'Time (T)'
+# YLABEL = 'Initiative'
+
+TITLE = 'Initiative and ELO'
+XLABEL = 'ELO (% difference)'
+YLABEL = 'Initiative'
+
+D[:, 2] = min_max_normalization(D[:, 2], y_range=[-1, 1])
+D[:, 3] = min_max_normalization(D[:, 3], y_range=[-1, 1])
+D[:, 4] = min_max_normalization(D[:, 4], y_range=[-1, 1])
+D[:, 5] = min_max_normalization(D[:, 5], y_range=[-1, 1])
+
+D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+D_COL = min_max_normalization(D_COL, y_range=[-1, 1])
 
 win_rows = np.where(D[:, 0] > 0.5)[0]
 loss_rows = np.where(D[:, 0] < 0.5)[0]
 
 '''some stats'''
-won_and_COL = np.mean(D[win_rows, COL])
-loss_and_COL = np.mean(D[loss_rows, COL])
+# won_and_COL = np.mean(D[win_rows, COL])
+# loss_and_COL = np.mean(D[loss_rows, COL])
 
-print("won_and_COL: " + str(won_and_COL))
-print("lost_and_COL: " + str(loss_and_COL))
+# print("won_and_COL: " + str(won_and_COL))
+# print("lost_and_COL: " + str(loss_and_COL))
 
 # won_and_ELO = np.mean(wins[:, 0])
 # lost_and_ELO = np.mean(losses[:, 0])
@@ -64,7 +70,7 @@ print("lost_and_COL: " + str(loss_and_COL))
 # wins_avg_time = np.mean(wins[wins_and_first, COL])
 # losses_avg_time = np.mean(losses[losses_and_sec, COL])
 
-fig, ax0 = plt.subplots(figsize=(12, 12))
+fig, ax0 = plt.subplots(figsize=(8, 6))
 
 '''
 Scatter plot and reg line
@@ -105,36 +111,54 @@ elos = np.zeros(shape=(len(D),), dtype=np.float32)
 elos[win_rows] = abs(D[win_rows, 1])
 elos[loss_rows] = abs(D[loss_rows, 1])
 
-# to_match = np.linspace(1000, 2900, 10, dtype=int)
-# to_match = list(range(900, 3100, 300))
-# to_match = [-1, -0.05, -0.02, 0, 0.02, 0.05, 1]
-to_match = [0, 0.01, 0.02, 0.05, 0.1, 1]
-# to_match = [-1, 0.02, 0.05, 1]
-# avg_elos = np.zeros(shape=(len(D),), dtype=float)
-#
-for i in range(0, len(to_match) - 1):
-    _matches = np.where((elos >= to_match[i]) & (elos < to_match[i + 1]))[0]
-    elos[_matches] = int(0.5 * (to_match[i] + to_match[i + 1]) * 100)
+# times = np.zeros(shape=(len(D),), dtype=np.float32)
+times = D[:, 7]
+times = np.rint(times * 10).astype(int)
 
-df = pd.DataFrame({'Won?': pd.Series(D[:, 0], dtype='bool'),
-                   'elo_diff_percentage': pd.Series(elos, dtype='int'),
-                   'COL': pd.Series(D[:, COL], dtype='float')})
+to_match_elos = [0, 0.03, 0.06, 0.125, 0.25, 0.5, 1.0]  # NOT NEEDED FOR TIMES
+# to_match_elos = [0, 0.01, 0.02, 0.05, 0.1, 1]  # NOT NEEDED FOR TIMES
 
-# sns.violinplot(data=df, x="COL", y="elo_cats", hue="Won?", split=True, orient='h',
+for i in range(0, len(to_match_elos) - 1):
+    _matches_elos = np.where((elos >= to_match_elos[i]) & (elos < to_match_elos[i + 1]))[0]
+    elos[_matches_elos] = int(0.5 * (to_match_elos[i] + to_match_elos[i + 1]) * 100)
+
+df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
+                   XLABEL: pd.Series(elos, dtype='int'),
+                   # XLABEL: pd.Series(times, dtype='int'),
+                   YLABEL: pd.Series(D_COL, dtype='float')})
+
+
+# plt.gca().invert_yaxis()  # DOESNT WORK FOR INNER
+
+# ELOS =============================
+# ax = sns.violinplot(data=df, x=XLABEL, y=YLABEL, hue="Winner?", split=True, orient='v',
 #                # hue_order=[True, False],
 #                palette={True: 'blue', False: 'red'},
 #                cut=0,
-#                # inner=None,
-#                density_norm='count'
+#                density_norm='width',
 #                )
-# plt.gca().invert_yaxis()  # DOESNT WORK FOR INNER
 
-sns.violinplot(data=df, x="elo_diff_percentage", y="COL", hue="Won?", split=True, orient='v',
-               # hue_order=[True, False],
-               palette={True: 'blue', False: 'red'},
-               cut=0,
-               density_norm='area',
-               )
+ax = sns.boxplot(data=df, x=XLABEL, y=YLABEL, hue="Winner?",
+                 # hue_order=[True, False],
+                 palette={True: 'blue', False: 'red'},
+                 fliersize=0
+                 )
 
+# DO IT IN PAINT ===========
+# sns.lineplot(x=np.linspace(1, 100, num=7), y=np.full((7,), fill_value=0), ax=ax, color='black')
+
+
+# TIMES =================
+# ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL, hue='Winner?', hue_order=[True, False],
+#              errorbar='sd', err_style='band')
+
+# ax = plt.gca()
+# ax.set_xlim([xmin, xmax])
+ax.set_ylim([-1, 1])
+
+plt.title(TITLE, fontsize=15)
+plt.xlabel(XLABEL, fontsize=15)
+plt.ylabel(YLABEL, fontsize=15)
+plt.legend(loc='upper left', title='Winner?', title_fontsize=14, fontsize=14)
 plt.show()
 adf = 5
