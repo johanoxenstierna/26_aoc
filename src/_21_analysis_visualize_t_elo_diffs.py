@@ -25,7 +25,6 @@ D_out[:, 7] = time_cut (t!)
 D_out[:, 8] = t0_ratio
 D_out[:, 9] = t_end
 
-
 """
 
 # TIME_CUT = 0.2  # ONLY FOR ELO
@@ -141,7 +140,8 @@ df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
 ax = sns.boxplot(data=df, x=XLABEL, y=YLABEL, hue="Winner?",
                  # hue_order=[True, False],
                  palette={True: 'blue', False: 'red'},
-                 fliersize=0
+                 fliersize=0,
+                 whis=[20, 80]
                  )
 
 # DO IT IN PAINT ===========

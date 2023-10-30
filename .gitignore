@@ -27,3 +27,7 @@ __pycache__/
 /r/unzip_folder/
 /r/6_z/
 /r/3_z/
+
+/backups/files_to_be_removed.json
+/backups/profiles_.json
+/backups/profiles__.json
