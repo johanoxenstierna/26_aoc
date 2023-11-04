@@ -15,22 +15,24 @@ from uuid import uuid4
 from src.grabs_utils import *
 
 '''ALWAYS CHECK THESE BEFORE RUNNING'''
-# PATH_OUT = './r/6_z/'
-PATH_OUT = '/media/johan/0E45-EEA5/r_z/'  # zip doesnt seem to work here
+PATH_OUT = './r/8_z/'
+# PATH_OUT = '/media/johan/0E45-EEA5/r_z/'  # zip doesnt seem to work here
 UNZIP_FOLDER = './r/unzip_folder/'
 # USB_bool = True  # needed bcs zip files FOR WHATEVER F* REASON, cant be saved directly to usb SEEMS TO WORK NOW
-PATHS_DONE = ['./r/3/', './r/4/', './r/5_z/', './r/6_z/']  # '/media/johan/KINGSTON/r/'
+PATHS_DONE = ['./r/3_z/', './r/4_z/', './r/5_z/', './r/6_z/', './r/7_z/']  # '/media/johan/KINGSTON/r/'
 COMPUTER_CUT = [0, 0.5]  # this splits the profiles between computers
 
-'''This is to avoid downloading the same records several times'''
+'''This is to avoid downloading the same profiles several times'''
 _, _, out_names_done0 = os.walk(PATHS_DONE[0]).__next__()
 _, _, out_names_done1 = os.walk(PATHS_DONE[1]).__next__()
 _, _, out_names_done2 = os.walk(PATHS_DONE[2]).__next__()
 _, _, out_names_done3 = os.walk(PATHS_DONE[3]).__next__()
-out_names_done = out_names_done0 + out_names_done1 + out_names_done2 + out_names_done3
+_, _, out_names_done4 = os.walk(PATHS_DONE[4]).__next__()
+out_names_done = out_names_done0 + out_names_done1 + out_names_done2 + out_names_done3 + out_names_done4
 out_names_done = [x.split('.')[0] for x in out_names_done]
 
-profile_ids = get_profile_ids(200, out_names_done, COMPUTER_CUT)
+NUM_DUPLICATES = 0
+profile_ids = get_profile_ids(3000, out_names_done, COMPUTER_CUT)
 
 driver = webdriver.Firefox()
 time0 = time.time()
@@ -43,6 +45,7 @@ for iii, profile_id in enumerate(profile_ids):
     print("profile_id: " + str(profile_id))
     print("==========================")
     print("Total games added: " + str(num_games))
+    print("NUM_DUPLICATES: " + str(NUM_DUPLICATES))
 
     try:  # try a profile
         driver.get(f"https://www.ageofempires.com/stats/?profileId={profile_id}&game=age2&matchType=3")#put here the adress of your page
@@ -59,6 +62,7 @@ for iii, profile_id in enumerate(profile_ids):
             out_name = str(profile_id) + "_" + str(match_times[i])
             if out_name in out_names_done:
                 print("file already done: out_name: " + str(out_name))
+                NUM_DUPLICATES += 1
                 continue
             else:
                 out_names_done.append(out_name)

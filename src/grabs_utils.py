@@ -89,8 +89,12 @@ def get_profile_ids(num, out_names_done, COMPUTER_CUT):
 
 		name = random.choice(profile_names)
 
-		if profiles[name]['profile_id'] not in out_profile_ids_done \
-			and name not in names_done_this_round:
+		'''ONLY ONE COLLECTION PER PROFILE'''
+		# if profiles[name]['profile_id'] not in out_profile_ids_done \
+		# 	and name not in names_done_this_round:
+
+		'''PROFILES CAN BE COLLECTED SEVERAL TIMES (files are still not repeated)'''
+		if name not in names_done_this_round:
 
 			elo = profiles[name]['ELO']
 
