@@ -47,9 +47,10 @@ D_out[:, 6] = ini_group_size_avg_diff
 D_out[:, 7] = time_cut (t!)
 D_out[:, 8] = t0_ratio
 D_out[:, 9] = t_end
+D_out[:, 10] = ELO_avg
 
 """
-PATH_OUT = './data_proc/results/temp.npy'  # result_table
+PATH_OUT = './src/results/temp.npy'  # result_table
 COMB_DIFFS = 1  # 0 is COMB
 COL_time_cut = 13
 
@@ -59,7 +60,7 @@ if COMB_DIFFS == 1:
 	COL_time_cut = 7
 
 if COMB_DIFFS == 0:
-	D = flatten_winner_loser(D, TIME_CUT=1.0)  # ONLY NEED 1 ROW/MATCH
+	D = flatten_winner_loser(D, TIME_CUT=1.0)  # ONLY NEED 1 ROW/MATCH... WHAT?
 
 # '''Keep matches where diff in ELO is low'''
 rows_to_keep = []
@@ -72,16 +73,20 @@ for i in range(0, len(D)):
 			rows_to_keep.append(i)
 
 	if COMB_DIFFS == 1:
-		diff_elo = D[i, 1]
-		if diff_elo < 99.09:
+		# diff_elo = D[i, 1]
+		# if diff_elo < 99999.09:
+		# 	rows_to_keep.append(i)
+
+		diff_elo_avg = D[i, 10]
+		if diff_elo_avg > 1400:
 			rows_to_keep.append(i)
 
 print("Rows before: " + str(len(D)) + "  Rows aft: " + str(len(rows_to_keep)))
 D = D[rows_to_keep, :]   # break here to see how many were kept
 
-# time_cut_ratios = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+time_cut_ratios = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # time_cut_ratios = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-time_cut_ratios = [0.5]  # OBS TEMP TIME_CUT - 0.3 used as frame
+# time_cut_ratios = [0.5]  # OBS TEMP TIME_CUT - 0.3 used as frame
 result_table = np.zeros(shape=(len(time_cut_ratios), 5), dtype=float)
 
 for i in range(len(time_cut_ratios)):
@@ -103,44 +108,46 @@ for i in range(len(time_cut_ratios)):
 		'''
 		COMB. 
 		Prevent ELO from reappearing in train/test
+		NOT NEEDED
 		'''
 		D_t[:, 1] += np.random.uniform(low=-20, high=20, size=len(D_t[:, 1]))
 		D_t[:, 7] += np.random.uniform(low=-20, high=20, size=len(D_t[:, 7]))
 
 		X = pd.DataFrame({
 			'elo0': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
-			'ini_actions_prop0': pd.Series(D_t[:, 2], dtype='float'),
-			'ini_objs0': pd.Series(D_t[:, 3], dtype='int'),
-			'ini_objs_prop0': pd.Series(D_t[:, 4], dtype='float'),
-			'ini_targets_prop0': pd.Series(D_t[:, 5], dtype='float'),
+			# 'ini_actions_prop0': pd.Series(D_t[:, 2], dtype='float'),
+			# 'ini_objs0': pd.Series(D_t[:, 3], dtype='int'),
+			# 'ini_objs_prop0': pd.Series(D_t[:, 4], dtype='float'),
+			# 'ini_targets_prop0': pd.Series(D_t[:, 5], dtype='float'),
 			'elo1': pd.Series(D_t[:, 7], dtype='float'),
-			'ini_actions_prop1': pd.Series(D_t[:, 8], dtype='float'),
-			'ini_objs1': pd.Series(D_t[:, 9], dtype='int'),
-			'ini_objs_prop1': pd.Series(D_t[:, 10], dtype='float'),
-			'ini_targets_prop1': pd.Series(D_t[:, 11], dtype='float'),
-			'time_cut': pd.Series(D_t[:, COL_time_cut])
+			# 'ini_actions_prop1': pd.Series(D_t[:, 8], dtype='float'),
+			# 'ini_objs1': pd.Series(D_t[:, 9], dtype='int'),
+			# 'ini_objs_prop1': pd.Series(D_t[:, 10], dtype='float'),
+			# 'ini_targets_prop1': pd.Series(D_t[:, 11], dtype='float'),
+			# 'time_cut': pd.Series(D_t[:, COL_time_cut])
 			}
 		)
 	else:
 		'''Diffs'''
-		D_t[:, 1] += np.random.uniform(low=-0.005, high=0.005, size=len(D_t[:, 1]))
+		# D_t[:, 1] += np.random.uniform(low=-0.005, high=0.005, size=len(D_t[:, 1]))  # NOT NEEDED AS LONG AS 1 ROW USED
 		X = pd.DataFrame({
-			# 'elo_diff': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
+			'elo_diff': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
 			'actions': pd.Series(D_t[:, 2], dtype='float'),
-			# 'ini_objs_diff': pd.Series(D_t[:, 3], dtype='float'),
+			'ini_objs_diff': pd.Series(D_t[:, 3], dtype='float'),
 			'subjects': pd.Series(D_t[:, 4], dtype='float'),
 			'objects': pd.Series(D_t[:, 5], dtype='float'),
-			'time_cut': pd.Series(D_t[:, 7])  # completely useless for this, as it should be
+			'time_cut': pd.Series(D_t[:, 7]),  # completely useless for this, as it should be
+			'elo_avg': pd.Series(D_t[:, 10])
 		})
 
 	# fn = X.columns.values
 	feature_names = list(X.columns)
 	cn = ['won', 'lost']
 
-	m = RandomForestClassifier(n_estimators=80, max_depth=3)
+	m = RandomForestClassifier(n_estimators=80, max_depth=4)
 
 	'''No cv'''
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=2, shuffle=False)
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=3, shuffle=False)
 	m.fit(X_train, y_train.values.ravel())
 	y_pred = m.predict(X_test)
 	accuracy = accuracy_score(y_test, y_pred)
@@ -158,14 +165,15 @@ for i in range(len(time_cut_ratios)):
 
 	'''Feature importance
 	IDEA: These can be plotted with std (but probably not that interesting)'''
-	importances = m.feature_importances_  # following feature_names
-	std = np.std([tree.feature_importances_ for tree in m.estimators_], axis=0)
+	# importances = m.feature_importances_  # following feature_names
+	# std = np.std([tree.feature_importances_ for tree in m.estimators_], axis=0)
+	#
+	# result_table[i, 0] = TIME_CUT
+	# result_table[i, 1] = accuracy
+	# result_table[i, 2] = importances[0]  # ini_actions_prop_diff
+	# result_table[i, 3] = importances[1]  # ini_objs_prop_diff
+	# result_table[i, 4] = importances[2]  # ini_targets_prop_diff
 
-	result_table[i, 0] = TIME_CUT
-	result_table[i, 1] = accuracy
-	result_table[i, 2] = importances[0]  # ini_actions_prop_diff
-	result_table[i, 3] = importances[1]  # ini_objs_prop_diff
-	result_table[i, 4] = importances[2]  # ini_targets_prop_diff
 	'''Add: time_cut, '''
 
 	# feature_names = list(X.columns)

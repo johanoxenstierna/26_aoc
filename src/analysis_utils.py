@@ -91,16 +91,6 @@ def convert_to_single_row(DD):
 def flatten_winner_loser(DD, TIME_CUT):
 
 	"""
-	   0     1          2                  3            4                5                6        7                   8             9                 10                11      12                13
-	PLACEHOLD,ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-	TO
-	0          1          2                  3            4                5                6        7                   8             9                 10                11      12                13
-	won_lost, ELO0 , ini_times_avg_rat0, ini_objs_tot0, ini_targets0, ini_group_size_avg0, ELO1, ini_times_avg_rat1, ini_objs_tot1, ini_targets1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-	    0     1          2                3               4                5                6              7            8             9              10               11              12                13          14              15
-	winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
 	D_out[:, 0] = won_lost
 	D_out[:, 1] = ELO0
 	D_out[:, 2] = ini_actions_prop0
@@ -119,6 +109,7 @@ def flatten_winner_loser(DD, TIME_CUT):
 	D_out[:, 15] = match_time
 	D_out[:, 16] = t0_ratio
 	D_out[:, 17] = t_end
+
 	"""
 
 	'''
@@ -167,6 +158,29 @@ def flatten_winner_loser(DD, TIME_CUT):
 
 
 def weighted_means(D, COLS):
+
+	"""
+
+	D_out[:, 0] = won_lost
+	D_out[:, 1] = ELO0
+	D_out[:, 2] = ini_actions_prop0
+	D_out[:, 3] = ini_objs0
+	D_out[:, 4] = ini_objs_prop0
+	D_out[:, 5] = ini_targets_prop0
+	D_out[:, 6] = ini_group_size_avg0
+	D_out[:, 7] = ELO1
+	D_out[:, 8] = ini_actions_prop1
+	D_out[:, 9] = ini_objs1
+	D_out[:, 10] = ini_objs_prop1
+	D_out[:, 11] = ini_targets_prop1
+	D_out[:, 12] = ini_group_size_avg1
+	D_out[:, 13] = time_cut
+	D_out[:, 14] = profile_id_save
+	D_out[:, 15] = match_time
+	D_out[:, 16] = t0_ratio
+	D_out[:, 17] = t_end
+
+	"""
 
 	if D[0, 13] > 0.15:
 		raise Exception("first row time_cut is not 0.1")

@@ -13,14 +13,14 @@ from mgz_aoc_clone.mgz.model import parse_match, serialize
 
 from src.utils import *
 
+R = 14
 
-# PATH = './mgz_aoc_clone/tests/recs_first/'
-# PATH_IN = '/media/johan/KINGSTON/r/'
-R = 6
-PATH_IN_ZIP = './r/{}_z/'.format(str(R))
 PATH_UNZIP_FOLDER = './r/unzip_folder_{}/'.format(str(R))
-PATH_OUT = './data_proc/D{}0.npy'.format(str(R))
 PATH_FILES_TO_BE_REMOVED = './r/files_to_be_removed_{}.json'.format(str(R))
+PATH_OUT = './data_proc/D{}0.npy'.format(str(R))
+
+# PATH_IN_ZIP = './r/{}_z/'.format(str(R))
+PATH_IN_ZIP = '/media/johan/0E45-EEA5/{}_z/'.format(str(R))
 
 _, _, file_names_zip = os.walk(PATH_IN_ZIP).__next__()  # THESE ARE ARCHIVES. NOT SORTED!!!!
 file_names_zip.sort()  # good to make sure reruns are same

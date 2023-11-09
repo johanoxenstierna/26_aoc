@@ -1,7 +1,7 @@
 
 import numpy as np
 
-file_names = [2, 3, 4, 5, 6]
+file_names = [2, 3, 4, 5, 6, 10, 11, 12, 13, 14]
 
 _1 = np.load('./data_proc/D{}0.npy'.format(str(file_names[0])))
 _1 = _1[np.where((_1[:, 1] > 0) & (_1[:, 7] > 0))[0], :]

@@ -8,26 +8,13 @@ import pandas as pd
 
 from src.analysis_utils import *
 
-D = np.load('./data_proc/D20_diffs.npy')  # OBS DONT LOOK AT LEN HERE
+D = np.load('./data_proc/D_diffs.npy')  # OBS DONT LOOK AT LEN HERE
 # D = D[np.where((D[:, 1] > 0) & (D[:, 7] > 0))[0], :]
 
-TIME_CUT = 0.5
-D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
+# TIME_CUT = 0.5
+D = D[np.where(D[:, 7] > 0.95)[0], :]
 
 """
-    0     1          2                3               4                5                6              7            8             9              10               11              12                13          14              15
-winner,  ELO0 , ini_actions_prop0, ini_objs0, ini_objs_prop0, ini_targets_prop0, ini_group_size_avg0, ELO1, ini_actions_prop1, ini_objs1, ini_objs_prop1, ini_targets_prop1, ini_group_size_avg1, time_cut, profile_id_save   match_time
-
-ELO
-p['ini_actions_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_objs'] = 0  # THE LARGER THE MORE INI
-p['ini_objs_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_targets_prop'] = 0  # THE LARGER THE MORE INI
-p['ini_group_size_avg'] = 0  # need to remove later if 0
-
-OBS can only do 1 column, BUT DOES NOT MATTER CUZ LOOK AT V 
-
-
 D_out[:, 0] = D_flat[:, 0]
 D_out[:, 1] = ELO_diff
 D_out[:, 2] = ini_actions_prop_diff
@@ -35,22 +22,40 @@ D_out[:, 3] = ini_objs_diff
 D_out[:, 4] = ini_objs_prop_diff
 D_out[:, 5] = ini_targets_prop_diff
 D_out[:, 6] = ini_group_size_avg_diff
-D_out[:, 7] = D_flat[:, 13]
-
+D_out[:, 7] = time_cut (t!)
+D_out[:, 8] = t0_ratio
+D_out[:, 9] = t_end
 
 """
 
-COL = 6  # THIS IS AN INDEX!!!
+# TITLE = 'Initiative through time'
+TITLE = 'Initiative and Elo (pvp difference)'
+D[:, 1] = np.abs(D[:, 1])
+# XLABEL = 'Time (T)'
+XLABEL = 'Elo (normalized difference)'
+YLABEL = 'Initiative'
 
-win_rows = np.where(D[:, 0] > 0.5)[0]
-loss_rows = np.where(D[:, 0] < 0.5)[0]
+D[:, 2] = min_max_normalization(D[:, 2], y_range=[-1, 1])
+D[:, 3] = min_max_normalization(D[:, 3], y_range=[-1, 1])
+D[:, 4] = min_max_normalization(D[:, 4], y_range=[-1, 1])
+D[:, 5] = min_max_normalization(D[:, 5], y_range=[-1, 1])
 
-'''some stats'''
-won_and_COL = np.mean(D[win_rows, COL])
-loss_and_COL = np.mean(D[loss_rows, COL])
+D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+# D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+D_COL = min_max_normalization(D_COL, y_range=[-1, 1])
 
-print("won_and_COL: " + str(won_and_COL))
-print("lost_and_COL: " + str(loss_and_COL))
+# COL = 6  # THIS IS AN INDEX!!!
+
+# win_rows = np.where(D[:, 0] > 0.5)[0]
+# loss_rows = np.where(D[:, 0] < 0.5)[0]
+
+
+# '''some stats'''
+# won_and_COL = np.mean(D[win_rows, COL])
+# loss_and_COL = np.mean(D[loss_rows, COL])
+#
+# print("won_and_COL: " + str(won_and_COL))
+# print("lost_and_COL: " + str(loss_and_COL))
 
 # won_and_ELO = np.mean(wins[:, 0])
 # lost_and_ELO = np.mean(losses[:, 0])
@@ -101,33 +106,52 @@ Needs the winner and loss data to be stacked
 # V[win_rows, 2] = D[:, WIN_COLS[COL_TO_TEST_INDEX]]
 # V[loss_rows, 2] = D[:, LOSS_COLS[COL_TO_TEST_INDEX]]
 
-elos = np.zeros(shape=(len(D),), dtype=np.float32)
-elos[win_rows] = abs(D[win_rows, 1])
-elos[loss_rows] = abs(D[loss_rows, 1])
+# elos = np.zeros(shape=(len(D),), dtype=np.float32)
+# elos[win_rows] = abs(D[win_rows, 1])
+# elos[loss_rows] = abs(D[loss_rows, 1])
 
 # to_match = np.linspace(1000, 2900, 10, dtype=int)
 # to_match = list(range(900, 3100, 300))
 # to_match = [-1, -0.05, -0.02, 0, 0.02, 0.05, 1]
-to_match = [0, 0.01, 0.02, 0.05, 0.1, 1]
+# to_match_elos = [0, 0.03, 0.06, 0.125, 0.25, 0.5, 1.0]  # NOT NEEDED FOR TIMES
+# to_match = [0, 0.01, 0.02, 0.05, 0.1, 1]
 # to_match = [-1, 0.02, 0.05, 1]
 # avg_elos = np.zeros(shape=(len(D),), dtype=float)
 #
-for i in range(0, len(to_match) - 1):
-    _matches = np.where((elos >= to_match[i]) & (elos < to_match[i + 1]))[0]
-    elos[_matches] = int(0.5 * (to_match[i] + to_match[i + 1]) * 100)
+# for i in range(0, len(to_match) - 1):
+#     _matches = np.where((elos >= to_match[i]) & (elos < to_match[i + 1]))[0]
+#     elos[_matches] = int(0.5 * (to_match[i] + to_match[i + 1]) * 100)
 
-df = pd.DataFrame({
-    'won?': pd.Series(D[:, 0], dtype='bool'),
-    # 'elo_diff_percentage': pd.Series(elos, dtype='int'),
-    'ELO_diff': pd.Series(D[:, 1], dtype='float'),
-    # 'ini_actions_prop_diff': pd.Series(D[:, 2], dtype='float'),
-    # 'ini_objs_diff': pd.Series(D[:, 3], dtype='float'),
-    'ini_objs_prop_diff': pd.Series(D[:, 4], dtype='float'),
-    'ini_targets_prop_diff': pd.Series(D[:, 5], dtype='float'),
+# for i in range(0, len(to_match_elos) - 1):
+#     _matches_elos = np.where((elos >= to_match_elos[i]) & (elos < to_match_elos[i + 1]))[0]
+#     elos[_matches_elos] = int(0.5 * (to_match_elos[i] + to_match_elos[i + 1]) * 100)
 
-})
+# df = pd.DataFrame({
+#     'won?': pd.Series(D[:, 0], dtype='bool'),
+#     # 'elo_diff_percentage': pd.Series(elos, dtype='int'),
+#     'ELO_diff': pd.Series(D[:, 1], dtype='float'),
+#     # 'ini_actions_prop_diff': pd.Series(D[:, 2], dtype='float'),
+#     # 'ini_objs_diff': pd.Series(D[:, 3], dtype='float'),
+#     'ini_objs_prop_diff': pd.Series(D[:, 4], dtype='float'),
+#     'ini_targets_prop_diff': pd.Series(D[:, 5], dtype='float'),
+# })
 
-sns.pairplot(df, hue='won?', hue_order=[True, False], kind='hist')
+df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
+                   XLABEL: pd.Series(D[:, 1], dtype='float'),
+                   # XLABEL: pd.Series(times, dtype='int'),
+                   YLABEL: pd.Series(D_COL, dtype='float')})
+
+# sns.pairplot(df, hue='Winner?', hue_order=[True, False], kind='hist')
+sns.scatterplot(data=df, x=XLABEL, y=YLABEL, size=0.1)
+slope_blue, intercept, r_value, p_value_blue, std_err = stats.linregress(x=D[:, 1], y=D_COL)
+R2 = r_value ** 2
+print("R2: " + str(R2))
+
+# ax = sns.regplot(data=df, x=XLABEL, y=YLABEL)
+
+plt.title(TITLE, fontsize=15)
+plt.xlabel(XLABEL, fontsize=15)
+plt.ylabel(YLABEL, fontsize=15)
 
 plt.show()
 adf = 5

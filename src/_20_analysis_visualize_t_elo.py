@@ -9,6 +9,9 @@ import pandas as pd
 from src.analysis_utils import *
 
 """
+
+OBS NOT POSTPROCESSED
+
 D_out[:, 0] = won_lost (NOT RELEVANT)
 D_out[:, 1] = ELO0
 D_out[:, 2] = ini_actions_prop0
@@ -31,9 +34,13 @@ D_out[:, 17] = t_end
 
 D = np.load('./data_proc/D_comb.npy')  # OBS DONT LOOK AT LEN HERE
 D = D[np.where((D[:, 1] > 10) & (D[:, 7] > 10))[0], :]
+# aa = np.where((D[:, 1] < 10) | (D[:, 7] < 10))[0]
 
 TIME_CUT = 1.0
 D = D[np.where(D[:, 13] < TIME_CUT)[0], :]
+
+aa = np.mean(D[:, 1])
+bb = np.mean(D[:, 7])
 
 '''Keep matches where diff in ELO is low'''
 rows_to_keep = []
@@ -45,12 +52,12 @@ for i in range(0, len(D)):
 print("Rows before: " + str(len(D)) + "  Rows aft: " + str(len(rows_to_keep)))
 D = D[rows_to_keep, :]   # break here to see how many were kept
 
-'''t0_ratio vs ELO'''
+'''t0_ratio vs ELO. ONLY 1 TIME CUT NEEDED'''
 D_flat = flatten_winner_loser(D, TIME_CUT=0.1)  # ONLY NEED 1 ROW/MATCH
 
 # [ELO, ini_actions_prop, ini_objs, ini_objs_prop, ini_targets_prop, ini_group_size_avg]
 # COLS = [0, 1, 2, 3, 4, 5]
-D_COL = D[:, 16]  # THE SAME VALUE FOR WINNER/LOSER
+D_COL = D_flat[:, 16]  # THE SAME VALUE FOR WINNER/LOSER
 # COL_TO_TEST_INDEX = 4  # THIS IS AN INDEX!!!
 # WIN_COLS = [1, 2, 3, 4, 5, 6]
 # LOSS_COLS = [7, 8, 9, 10, 11, 12]
@@ -58,8 +65,8 @@ D_COL = D[:, 16]  # THE SAME VALUE FOR WINNER/LOSER
 # aa = min_max_normalization(D[:, 3], y_range=[-1, 0])
 
 '''t0_ratio vs ELO'''
-TITLE = 't_0/t_end and ELO'
-XLABEL = 'ELO'
+TITLE = 't_0/t_end and Elo'
+XLABEL = 'Elo'
 YLABEL = 't_0/t_end'
 
 win_rows = np.where(D_flat[:, 0] > 0.5)[0]
@@ -143,9 +150,9 @@ PROBABLY DEPR UE TO MOVED ELSEWHERE
 
 # to_match = np.linspace(1000, 2900, 10, dtype=int)
 
-elos = np.zeros(shape=(len(D),), dtype=np.float32)
-elos[win_rows] = D[win_rows, 1]
-elos[losses_rows] = D[losses_rows, 7]
+elos = np.zeros(shape=(len(D_flat),), dtype=np.float32)
+elos[win_rows] = D_flat[win_rows, 1]
+elos[losses_rows] = D_flat[losses_rows, 7]
 to_match_elos = list(range(800, 3100, 300))
 
 for i in range(0, len(to_match_elos) - 1):
@@ -167,20 +174,20 @@ df = pd.DataFrame({'Winner?': pd.Series(D_flat[:, 0], dtype='bool'),
 #                density_norm='count'
 #                )
 
-ax = sns.violinplot(data=df, x=YLABEL, y=XLABEL, hue="Winner?", split=True, orient='h',
+ax = sns.violinplot(data=df, x=XLABEL, y=YLABEL, hue=None, split=True, orient='v',
                     # hue_order=[True, False],
-                    palette={True: 'blue', False: 'red'},
+                    # palette={True: 'blue', False: 'red'},
                     # cut=0,
                     density_norm='area',
-                    inner=None
+                    inner='quart'
                     )
 
-plt.gca().invert_yaxis()  # DOESNT WORK FOR INNER
+# plt.gca().invert_yaxis()  # DOESNT WORK FOR INNER
 # ax.set_ylim([500, 3000])  # seems to mess up with orient=h, USE PAINT
 
 plt.title(TITLE, fontsize=15)
-plt.xlabel(YLABEL, fontsize=15)
-plt.ylabel(XLABEL, fontsize=15)
-plt.legend(loc='upper right', title='Winner?', title_fontsize=14, fontsize=14)
+plt.xlabel(XLABEL, fontsize=15)
+plt.ylabel(YLABEL, fontsize=15)
+# plt.legend(loc='upper right', title='Winner?', title_fontsize=14, fontsize=14)
 plt.show()
 adf = 5

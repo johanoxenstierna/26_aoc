@@ -24,6 +24,7 @@ D_out[:, 6] = ini_group_size_avg_diff
 D_out[:, 7] = time_cut (t!)
 D_out[:, 8] = t0_ratio
 D_out[:, 9] = t_end
+D_out[:, 10] = ELO_avg
 
 """
 
@@ -31,20 +32,27 @@ D_out[:, 9] = t_end
 # D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
 
 
-# TITLE = 'Initiative through time'
-# XLABEL = 'Time (T)'
-# YLABEL = 'Initiative'
-
-TITLE = 'Initiative and ELO'
-XLABEL = 'ELO (% difference)'
+TITLE = 'Initiative through time'
+XLABEL = 'Time (T_i)'
 YLABEL = 'Initiative'
+# D[:, 1] = min_max_normalization(D[:, 1], y_range=[-1, 1])  # ONLY FOR ELO
+
+# TITLE = 'Initiative and Elo (pvp difference)'
+# XLABEL = 'Elo (pvp difference)'
+# YLABEL = 'Initiative'
+# D[:, 1] = np.abs(D[:, 1])
 
 D[:, 2] = min_max_normalization(D[:, 2], y_range=[-1, 1])
 D[:, 3] = min_max_normalization(D[:, 3], y_range=[-1, 1])
 D[:, 4] = min_max_normalization(D[:, 4], y_range=[-1, 1])
 D[:, 5] = min_max_normalization(D[:, 5], y_range=[-1, 1])
+# D[:, 10] = min_max_normalization(D[:, 10], y_range=[-1, 1])  # NOT ZERO SUM
 
+COL = 1
+# D_COL = D[:, 1]  # NOT USEFUL OUTSIDE RF
+# D_COL = D[:, 1] + D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
 D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+
 D_COL = min_max_normalization(D_COL, y_range=[-1, 1])
 
 win_rows = np.where(D[:, 0] > 0.5)[0]
@@ -53,7 +61,7 @@ loss_rows = np.where(D[:, 0] < 0.5)[0]
 '''some stats'''
 # won_and_COL = np.mean(D[win_rows, COL])
 # loss_and_COL = np.mean(D[loss_rows, COL])
-
+#
 # print("won_and_COL: " + str(won_and_COL))
 # print("lost_and_COL: " + str(loss_and_COL))
 
@@ -63,13 +71,6 @@ loss_rows = np.where(D[:, 0] < 0.5)[0]
 # print("gradient ELO diff: " + str(gradient))
 
 
-''' cols using time'''
-# D = wins
-
-# wins_avg_time = np.mean(wins[wins_and_first, COL])
-# losses_avg_time = np.mean(losses[losses_and_sec, COL])
-
-fig, ax0 = plt.subplots(figsize=(8, 6))
 
 '''
 Scatter plot and reg line
@@ -114,19 +115,20 @@ elos[loss_rows] = abs(D[loss_rows, 1])
 times = D[:, 7]
 times = np.rint(times * 10).astype(int)
 
-to_match_elos = [0, 0.03, 0.06, 0.125, 0.25, 0.5, 1.0]  # NOT NEEDED FOR TIMES
-# to_match_elos = [0, 0.01, 0.02, 0.05, 0.1, 1]  # NOT NEEDED FOR TIMES
+# to_match_elos = [0, 0.03, 0.06, 0.125, 0.25, 0.5, 1.0]  # NOT NEEDED FOR TIMES
+to_match_elos = [0, 12, 25, 50, 100, 200, 400, 800, 1600]  # NOT NEEDED FOR TIMES
 
 for i in range(0, len(to_match_elos) - 1):
     _matches_elos = np.where((elos >= to_match_elos[i]) & (elos < to_match_elos[i + 1]))[0]
-    elos[_matches_elos] = int(0.5 * (to_match_elos[i] + to_match_elos[i + 1]) * 100)
+    # elos[_matches_elos] = int(0.5 * (to_match_elos[i] + to_match_elos[i + 1]) * 100)  # DEPR
+    elos[_matches_elos] = int(0.5 * (to_match_elos[i] + to_match_elos[i + 1]))
 
 df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
-                   XLABEL: pd.Series(elos, dtype='int'),
-                   # XLABEL: pd.Series(times, dtype='int'),
+                   # XLABEL: pd.Series(elos, dtype='int'),
+                   XLABEL: pd.Series(times, dtype='int'),
                    YLABEL: pd.Series(D_COL, dtype='float')})
 
-
+fig, ax0 = plt.subplots(figsize=(7, 5))
 # plt.gca().invert_yaxis()  # DOESNT WORK FOR INNER
 
 # ELOS =============================
@@ -137,20 +139,22 @@ df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
 #                density_norm='width',
 #                )
 
-ax = sns.boxplot(data=df, x=XLABEL, y=YLABEL, hue="Winner?",
-                 # hue_order=[True, False],
-                 palette={True: 'blue', False: 'red'},
-                 fliersize=0,
-                 whis=[20, 80]
-                 )
+# ELO_DIFFS =============================================
+# ax = sns.boxplot(data=df, x=XLABEL, y=YLABEL, hue="Winner?",
+#                  hue_order=[True, False],
+#                  palette={True: 'blue', False: 'red'},
+#                  fliersize=0,
+#                  whis=[5, 95]
+#                  )
 
 # DO IT IN PAINT ===========
-# sns.lineplot(x=np.linspace(1, 100, num=7), y=np.full((7,), fill_value=0), ax=ax, color='black')
-
 
 # TIMES =================
 # ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL, hue='Winner?', hue_order=[True, False],
 #              errorbar='sd', err_style='band')
+
+ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL,
+             errorbar='sd', err_style='band')
 
 # ax = plt.gca()
 # ax.set_xlim([xmin, xmax])
@@ -160,5 +164,6 @@ plt.title(TITLE, fontsize=15)
 plt.xlabel(XLABEL, fontsize=15)
 plt.ylabel(YLABEL, fontsize=15)
 plt.legend(loc='upper left', title='Winner?', title_fontsize=14, fontsize=14)
+# plt.legend(loc='lower right', title='Winner?', title_fontsize=3, fontsize=3)
 plt.show()
 adf = 5

@@ -34,7 +34,7 @@ D_out[:, 6] = ini_group_size_avg_diff
 D_out[:, 7] = time_cut
 D_out[:, 8] = t0_ratio
 D_out[:, 9] = t_end
-
+D_out[:, 10] = ELO_avg
 
 """
 
@@ -57,14 +57,15 @@ D_ = weighted_means(D, COLS)  # this function doesnt care about winner-loser
 D_flat = flatten_winner_loser(D_, TIME_CUT=1.0)
 
 ELO_diff = D_flat[:, 1] - D_flat[:, 7]
-ELO_diff = min_max_normalization(ELO_diff, y_range=[-1, 1])  # TODO: Use standardization instead
+ELO_avg = (D_flat[:, 1] + D_flat[:, 7]) / 2
+# NEW!!!! DONt do this # ELO_diff = min_max_normalization(ELO_diff, y_range=[-1, 1])  # TODO: Use standardization instead
 ini_actions_prop_diff = D_flat[:, 2] - D_flat[:, 8]
 ini_objs_diff = D_flat[:, 3] - D_flat[:, 9]
 ini_objs_prop_diff = D_flat[:, 4] - D_flat[:, 10]
 ini_targets_prop_diff = D_flat[:, 5] - D_flat[:, 11]
 ini_group_size_avg_diff = D_flat[:, 6] - D_flat[:, 12]
 
-D_out = np.zeros(shape=(len(D_flat), 10))
+D_out = np.zeros(shape=(len(D_flat), 11))
 D_out[:, 0] = D_flat[:, 0]
 D_out[:, 1] = ELO_diff
 D_out[:, 2] = ini_actions_prop_diff
@@ -75,6 +76,8 @@ D_out[:, 6] = ini_group_size_avg_diff
 D_out[:, 7] = D_flat[:, 13]
 D_out[:, 8] = D_flat[:, 16]
 D_out[:, 9] = D_flat[:, 17]
+D_out[:, 10] = ELO_avg
+# OBS extend np.zeros above
 
 np.save(PATH_OUT, D_out)
 
