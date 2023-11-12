@@ -20,7 +20,8 @@ PATH_FILES_TO_BE_REMOVED = './r/files_to_be_removed_{}.json'.format(str(R))
 PATH_OUT = './data_proc/D{}0.npy'.format(str(R))
 
 # PATH_IN_ZIP = './r/{}_z/'.format(str(R))
-PATH_IN_ZIP = '/media/johan/0E45-EEA5/{}_z/'.format(str(R))
+PATH_IN_ZIP = './r_test/2_z/'.format(str(R))
+# PATH_IN_ZIP = '/media/johan/0E45-EEA5/{}_z/'.format(str(R))
 
 _, _, file_names_zip = os.walk(PATH_IN_ZIP).__next__()  # THESE ARE ARCHIVES. NOT SORTED!!!!
 file_names_zip.sort()  # good to make sure reruns are same

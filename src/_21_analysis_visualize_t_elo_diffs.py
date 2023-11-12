@@ -30,6 +30,7 @@ D_out[:, 10] = ELO_avg
 
 # TIME_CUT = 0.2  # ONLY FOR ELO
 # D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
+D = D[np.where(D[:, 10] > 2000)[0], :]
 
 
 TITLE = 'Initiative through time'
@@ -150,11 +151,10 @@ fig, ax0 = plt.subplots(figsize=(7, 5))
 # DO IT IN PAINT ===========
 
 # TIMES =================
-# ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL, hue='Winner?', hue_order=[True, False],
-#              errorbar='sd', err_style='band')
+ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL, hue='Winner?', hue_order=[True, False],
+             errorbar=('sd', 1), err_style='band')  # ('ci', 99)
 
-ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL,
-             errorbar='sd', err_style='band')
+# ax = sns.lineplot(data=df, x=XLABEL, y=YLABEL, errorbar='sd', err_style='band')
 
 # ax = plt.gca()
 # ax.set_xlim([xmin, xmax])

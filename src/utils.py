@@ -143,7 +143,7 @@ def set_aggr_actions(ps):
 			# Position ALWAYS present in MOVE and ORDER. Need > 1 to avoid scout
 			if a.type.name in ['MOVE', 'ORDER', 'BUILD', 'WALL', 'PATROL', 'DE_ATTACK_MOVE'] and \
 				len(a.payload['object_ids']) > 1 and \
-				a.timestamp.seconds > 60:  # last condition not very important
+				a.timestamp.seconds > 60:  # last condition not very important # TODO: should belong to p'
 
 				'''condition on distances to tc'''
 				pos_a = np.asarray([a.position.x, a.position.y])

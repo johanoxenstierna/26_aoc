@@ -8,11 +8,6 @@ import pandas as pd
 
 from src.analysis_utils import *
 
-D = np.load('./data_proc/D_diffs.npy')  # OBS DONT LOOK AT LEN HERE
-# D = D[np.where((D[:, 1] > 0) & (D[:, 7] > 0))[0], :]
-
-# TIME_CUT = 0.5
-D = D[np.where(D[:, 7] > 0.95)[0], :]
 
 """
 D_out[:, 0] = D_flat[:, 0]
@@ -25,24 +20,35 @@ D_out[:, 6] = ini_group_size_avg_diff
 D_out[:, 7] = time_cut (t!)
 D_out[:, 8] = t0_ratio
 D_out[:, 9] = t_end
+D_out[:, 10] = ELO_avg
 
 """
 
+D = np.load('./data_proc/D_diffs.npy')  # OBS DONT LOOK AT LEN HERE
+# D = D[np.where((D[:, 1] > 0) & (D[:, 7] > 0))[0], :]
+
+# # TIME_CUT = 0.5
+D = D[np.where(D[:, 7] > 0.55)[0], :]
+
 # TITLE = 'Initiative through time'
-TITLE = 'Initiative and Elo (pvp difference)'
-D[:, 1] = np.abs(D[:, 1])
-# XLABEL = 'Time (T)'
-XLABEL = 'Elo (normalized difference)'
-YLABEL = 'Initiative'
+TYPE = 1
+if TYPE == 0:
+    TITLE = 'Initiative and Elo (pvp difference)'
+    D[:, 1] = np.abs(D[:, 1])
+    # XLABEL = 'Time (T)'
+    XLABEL = 'Elo (normalized difference)'
+    YLABEL = 'Initiative'
 
-D[:, 2] = min_max_normalization(D[:, 2], y_range=[-1, 1])
-D[:, 3] = min_max_normalization(D[:, 3], y_range=[-1, 1])
-D[:, 4] = min_max_normalization(D[:, 4], y_range=[-1, 1])
-D[:, 5] = min_max_normalization(D[:, 5], y_range=[-1, 1])
+    D[:, 2] = min_max_normalization(D[:, 2], y_range=[-1, 1])
+    D[:, 3] = min_max_normalization(D[:, 3], y_range=[-1, 1])
+    D[:, 4] = min_max_normalization(D[:, 4], y_range=[-1, 1])
+    D[:, 5] = min_max_normalization(D[:, 5], y_range=[-1, 1])
 
-D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
-# D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
-D_COL = min_max_normalization(D_COL, y_range=[-1, 1])
+    D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+    # D_COL = D[:, 2] + D[:, 3] + D[:, 4] + D[:, 5]
+    D_COL = min_max_normalization(D_COL, y_range=[-1, 1])
+elif TYPE == 1:
+    TITLE = 'delta_S and |S|'
 
 # COL = 6  # THIS IS AN INDEX!!!
 
@@ -136,22 +142,44 @@ Needs the winner and loss data to be stacked
 #     'ini_targets_prop_diff': pd.Series(D[:, 5], dtype='float'),
 # })
 
-df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
-                   XLABEL: pd.Series(D[:, 1], dtype='float'),
-                   # XLABEL: pd.Series(times, dtype='int'),
-                   YLABEL: pd.Series(D_COL, dtype='float')})
+if TYPE == 0:
+    fig, ax0 = plt.subplots(figsize=(7, 5))
+    df = pd.DataFrame({'Winner?': pd.Series(D[:, 0], dtype='bool'),
+                       XLABEL: pd.Series(D[:, 1], dtype='float'),
+                       # XLABEL: pd.Series(times, dtype='int'),
+                       YLABEL: pd.Series(D_COL, dtype='float')})
 
-# sns.pairplot(df, hue='Winner?', hue_order=[True, False], kind='hist')
-sns.scatterplot(data=df, x=XLABEL, y=YLABEL, size=0.1)
-slope_blue, intercept, r_value, p_value_blue, std_err = stats.linregress(x=D[:, 1], y=D_COL)
-R2 = r_value ** 2
-print("R2: " + str(R2))
+    # sns.pairplot(df, hue='Winner?', hue_order=[True, False], kind='hist')
+    sns.scatterplot(data=df, x=XLABEL, y=YLABEL, size=0.1)
+    slope_blue, intercept, r_value, p_value_blue, std_err = stats.linregress(x=D[:, 1], y=D_COL)
+    R2 = r_value ** 2
+    print("R2: " + str(R2))
 
-# ax = sns.regplot(data=df, x=XLABEL, y=YLABEL)
+    # ax = sns.regplot(data=df, x=XLABEL, y=YLABEL)
 
-plt.title(TITLE, fontsize=15)
-plt.xlabel(XLABEL, fontsize=15)
-plt.ylabel(YLABEL, fontsize=15)
+    plt.title(TITLE, fontsize=15)
+    plt.xlabel(XLABEL, fontsize=15)
+    plt.ylabel(YLABEL, fontsize=15)
+
+elif TYPE == 1:
+    fig, ax0 = plt.subplots(figsize=(6, 5))
+    df = pd.DataFrame({
+        'Winner?': pd.Series(D[:, 0], dtype='bool'),
+        # 'elo_diff': pd.Series(D[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
+        'actions': pd.Series(D[:, 2], dtype='float'),
+        'ini_objs_diff': pd.Series(D[:, 3], dtype='float'),
+        'subjects': pd.Series(D[:, 4], dtype='float'),
+        'objects': pd.Series(D[:, 5], dtype='float'),
+        # 'time_cut': pd.Series(D[:, 7])
+        # 'elo_avg': pd.Series(D[:, 10])
+    })
+
+    # sns.pairplot(df, kind='scatter', diag_kind=None, corner=True)  # kind : {'scatter', 'kde', 'hist', 'reg'}
+
+    sns.scatterplot(df, x='ini_objs_diff', y='subjects',
+                    hue='Winner?', hue_order=[True, False])
+    plt.title(TITLE, fontsize=15)
+    plt.legend(loc='upper left', title='Winner?', title_fontsize=14, fontsize=14)
 
 plt.show()
 adf = 5
