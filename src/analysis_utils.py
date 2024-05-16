@@ -132,8 +132,10 @@ def flatten_winner_loser(DD, TIME_CUT):
 			D_out[row, 0] = 1  # winner. Everything else remains
 			D_out[row, 1:] = D[row, 1:]
 		else:
-			D_out[row, 0] = 0  # loser. Swaps position. OBS DANGEROUS AS IT MAKES SAME DATA REAPPEAR
-
+			D_out[row, 0] = 0
+			'''loser. Swaps position. OBS DANGEROUS AS IT MAKES SAME DATA REAPPEAR
+			MORE IMPORTANTLY, no need to discard 50% of data!!! Just use noise, at least for training set
+			'''
 			D_out[row, 1] = D[row, 7]
 			D_out[row, 2] = D[row, 8]
 			D_out[row, 3] = D[row, 9]

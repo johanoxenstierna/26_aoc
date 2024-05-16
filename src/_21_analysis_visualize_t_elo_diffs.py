@@ -30,7 +30,7 @@ D_out[:, 10] = ELO_avg
 
 # TIME_CUT = 0.2  # ONLY FOR ELO
 # D = D[np.where(D[:, 7] < TIME_CUT)[0], :]
-D = D[np.where(D[:, 10] > 2000)[0], :]
+# D = D[np.where(D[:, 10] > 2000)[0], :]
 
 
 TITLE = 'Initiative through time'

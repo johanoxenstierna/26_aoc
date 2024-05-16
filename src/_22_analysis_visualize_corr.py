@@ -176,10 +176,10 @@ elif TYPE == 1:
 
     # sns.pairplot(df, kind='scatter', diag_kind=None, corner=True)  # kind : {'scatter', 'kde', 'hist', 'reg'}
 
-    sns.scatterplot(df, x='ini_objs_diff', y='subjects',
+    sns.scatterplot(df, x='ini_objs_diff', y='objects',
                     hue='Winner?', hue_order=[True, False])
-    plt.title(TITLE, fontsize=15)
-    plt.legend(loc='upper left', title='Winner?', title_fontsize=14, fontsize=14)
+    # plt.title(TITLE, fontsize=15)
+    # plt.legend(loc='upper left', title='Winner?', title_fontsize=14, fontsize=14)
 
 plt.show()
 adf = 5

@@ -16,7 +16,8 @@ from grabs_utils import *
 # profiles_postproc()
 """"""
 
-"""OOOOOOBBBBS CUR PAGE ON SITE: 221"""
+"""OOOOOOBBBBS CUR PAGE ON SITE: 221. 
+TODO: Info on opponent profile id not stored. -> Cannot infer how many total profiles were used"""
 # [Fs] guischmitt
 NEW = False
 if NEW == False:

@@ -51,14 +51,17 @@ D_out[:, 10] = ELO_avg
 
 """
 PATH_OUT = './src/results/'  # result_table
-COMB_DIFFS = 0  # 0 is COMB
+COMB_DIFFS = 0   # 0 is COMB
 
 if COMB_DIFFS == 0:
 	D = np.load('./data_proc/D_comb.npy')
-	D = flatten_winner_loser(D, TIME_CUT=1.0)  # ONLY NEED 1 ROW/MATCH... WHAT?
+	# D = np.load('./data_proc/D_comb_weighed.npy')  # TEMP
+
+	D = flatten_winner_loser(D, TIME_CUT=1.0)  # TIME_CUT always 1 here bcs the cutting is done below now
 	COL_time_cut = 13
 else:
 	D = np.load('./data_proc/D_diffs.npy')
+	# D = np.load('./data_proc/D_diffs_weighed.npy')
 	COL_time_cut = 7
 
 # '''Keep matches where diff in ELO is low'''
@@ -119,14 +122,14 @@ for i in range(len(time_cut_ratios)):
 		D_t[:, 7] += np.random.uniform(low=-20, high=20, size=len(D_t[:, 7]))
 
 		X = pd.DataFrame({
-			'elo0': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
-			'ini_actions_prop0': pd.Series(D_t[:, 2], dtype='float'),
-			'ini_objs0': pd.Series(D_t[:, 3], dtype='int'),
-			'ini_objs_prop0': pd.Series(D_t[:, 4], dtype='float'),
-			'ini_targets_prop0': pd.Series(D_t[:, 5], dtype='float'),
-			'elo1': pd.Series(D_t[:, 7], dtype='float'),
+			# 'elo0': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
+			# 'ini_actions_prop0': pd.Series(D_t[:, 2], dtype='float'),
+			'ini_objs0': pd.Series(D_t[:, 3], dtype='float'),
+			# 'ini_objs_prop0': pd.Series(D_t[:, 4], dtype='float'),
+			# 'ini_targets_prop0': pd.Series(D_t[:, 5], dtype='float'),
+			# 'elo1': pd.Series(D_t[:, 7], dtype='float'),
 			# 'ini_actions_prop1': pd.Series(D_t[:, 8], dtype='float'),
-			# 'ini_objs1': pd.Series(D_t[:, 9], dtype='int'),
+			'ini_objs1': pd.Series(D_t[:, 9], dtype='float'),
 			# 'ini_objs_prop1': pd.Series(D_t[:, 10], dtype='float'),
 			# 'ini_targets_prop1': pd.Series(D_t[:, 11], dtype='float'),
 			# 'time_cut': pd.Series(D_t[:, COL_time_cut])
@@ -136,23 +139,23 @@ for i in range(len(time_cut_ratios)):
 		'''Diffs'''
 		# D_t[:, 1] += np.random.uniform(low=-0.005, high=0.005, size=len(D_t[:, 1]))  # NOT NEEDED AS LONG AS 1 ROW USED
 		X = pd.DataFrame({
-			# 'elo_diff': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
+			'elo_diff': pd.Series(D_t[:, 1], dtype='float'),  # TODO ELO DIFFERENCE
 			'actions': pd.Series(D_t[:, 2], dtype='float'),
 			'ini_objs_diff': pd.Series(D_t[:, 3], dtype='float'),
 			'subjects': pd.Series(D_t[:, 4], dtype='float'),
 			'objects': pd.Series(D_t[:, 5], dtype='float'),
-			# 'time_cut': pd.Series(D_t[:, 7]),  # completely useless for this, as it should be
-			# 'elo_avg': pd.Series(D_t[:, 10])
+			'time_cut': pd.Series(D_t[:, 7]),  # completely useless for this, as it should be
+			'elo_avg': pd.Series(D_t[:, 10])
 		})
 
 	# fn = X.columns.values
 	feature_names = list(X.columns)
 	cn = ['won', 'lost']
 
-	m = RandomForestClassifier(n_estimators=80, max_depth=4)
+	m = RandomForestClassifier(n_estimators=150, max_depth=10, oob_score=True)
 
 	'''No cv'''
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=2, shuffle=False)
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.999, random_state=2, shuffle=False)
 	m.fit(X_train, y_train.values.ravel())
 	y_pred = m.predict(X_test)
 	accuracy = accuracy_score(y_test, y_pred)
@@ -219,12 +222,12 @@ for i in range(len(time_cut_ratios)):
 	# result_table[i, 5] = importances[3]  # ini_targets_prop0
 
 	# 5: comb pIniElo
-	result_table[i, 2] = importances[0]  # elo0
-	result_table[i, 3] = importances[1]  # ini_actions_prop0
-	result_table[i, 4] = importances[2]  # ini_objs0
-	result_table[i, 5] = importances[3]  # ini_objs_prop0
-	result_table[i, 6] = importances[4]  # ini_targets_prop0
-	result_table[i, 7] = importances[5]  # elo1
+	# result_table[i, 2] = importances[0]  # elo0
+	# result_table[i, 3] = importances[1]  # ini_actions_prop0
+	# result_table[i, 4] = importances[2]  # ini_objs0
+	# result_table[i, 5] = importances[3]  # ini_objs_prop0
+	# result_table[i, 6] = importances[4]  # ini_targets_prop0
+	# result_table[i, 7] = importances[5]  # elo1
 
 	# OBS extend zeros
 
@@ -238,6 +241,6 @@ for i in range(len(time_cut_ratios)):
 	# plt.show()
 	# break
 
-np.save(PATH_OUT + 'r.npy', result_table)
+# np.save(PATH_OUT + 'r.npy', result_table)
 # np.savetxt(PATH_OUT + 'temp.csv', result_table, delimiter=",")
 

@@ -54,7 +54,9 @@ LOSS_COLS = [7, 8, 9, 10, 11, 12]
 COLS = WIN_COLS[1:] + LOSS_COLS[1:]
 
 D_ = weighted_means(D, COLS)  # this function doesnt care about winner-loser
-D_flat = flatten_winner_loser(D_, TIME_CUT=1.0)
+# np.save('./data_proc/D_comb_weighed.npy', D_)  # TEMP
+
+D_flat = flatten_winner_loser(D, TIME_CUT=1.0)
 
 ELO_diff = D_flat[:, 1] - D_flat[:, 7]
 ELO_avg = (D_flat[:, 1] + D_flat[:, 7]) / 2
